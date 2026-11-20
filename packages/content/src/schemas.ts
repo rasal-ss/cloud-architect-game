@@ -45,6 +45,10 @@ export const ServiceSpec = z.object({
   description: z.string(),
   whenToUse: z.string(),
   whenNotToUse: z.string(),
+  /** Plain-English, everyday analogy for newcomers. */
+  analogy: z.string(),
+  /** How the service behaves in the simulation, in a sentence or three. */
+  inGame: z.string(),
   docsUrl: z.string().url().optional(),
   /** Allowed outgoing connections. */
   connectsTo: z.array(ServiceKind),
@@ -239,6 +243,15 @@ export const Level = z.object({
 });
 export type Level = z.infer<typeof Level>;
 export type LevelInput = z.input<typeof Level>;
+
+/** A basic idea every player needs, shown in the guide (requests, load, latency...). */
+export const Concept = z.object({
+  id: z.string().regex(/^[a-z-]+$/),
+  title: z.string(),
+  summary: z.string(),
+  body: z.string(),
+});
+export type Concept = z.infer<typeof Concept>;
 
 export const Act = z.object({
   act: z.number().int().min(1),

@@ -1,0 +1,44 @@
+[
+  {
+    "id": "requests",
+    "title": "Requests",
+    "summary": "Every click a customer makes.",
+    "body": "Each page view, image download or order is a request. There are three kinds in the game. Files (images, scripts) are cheap to serve from storage. Reads (viewing a page) need a server and usually a database. Orders (writes) must be saved safely, so they need a real database."
+  },
+  {
+    "id": "load",
+    "title": "Load and capacity",
+    "summary": "How busy a component is.",
+    "body": "Every component can do a fixed amount of work per second: its capacity. Load is how much of that it's using. Under 80% it's green and fast. Between 80% and 100% it turns amber and slows down. Above 100% it turns red and starts dropping requests. Fix it with a bigger size, more copies, or by taking work away from it."
+  },
+  {
+    "id": "latency",
+    "title": "Latency (p95)",
+    "summary": "How long customers wait.",
+    "body": "Latency is the time a request takes, in milliseconds. The game reports p95: 95% of requests were faster than this number. It shows the slow experiences that an average would hide. Every hop between components adds a little, and overloaded components add a lot."
+  },
+  {
+    "id": "availability",
+    "title": "Availability",
+    "summary": "The share of requests that worked.",
+    "body": "If 1,000 customers click and 999 succeed, availability is 99.9%. It sounds high, but 99% still means 1 in 100 customers saw an error. Crashes, overloads and broken connections all lower it."
+  },
+  {
+    "id": "spof",
+    "title": "Single point of failure",
+    "summary": "One part that takes everything down.",
+    "body": "Any component whose failure stops the whole site is a single point of failure, like a lone web server. Remove it with redundancy: two or more copies behind a load balancer, so one can fail while the others carry on."
+  },
+  {
+    "id": "availability-zones",
+    "title": "Availability Zones",
+    "summary": "Separate data centres in one region.",
+    "body": "An AWS region (say, London) is made of several Availability Zones: separate data centres with their own power and network. Spreading servers across two zones means a problem in one doesn't take you offline."
+  },
+  {
+    "id": "cost",
+    "title": "Cost per month",
+    "summary": "What your design costs to run.",
+    "body": "Each component has a monthly price, and some also charge per request. The game shows what your design would cost if every day looked like this one. Each level has a budget. Coming in well under it scores bonus points, and going over fails the level."
+  }
+]

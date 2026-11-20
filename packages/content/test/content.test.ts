@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Level, acts, levels, services } from '../src';
+import { Level, acts, concepts, levels, services } from '../src';
 import { solutions } from '../src/solutions';
 
 describe('service catalogue', () => {
@@ -12,6 +12,20 @@ describe('service catalogue', () => {
   it('only allows connections to known services', () => {
     const kinds = new Set(services.map((s) => s.kind));
     for (const s of services) for (const to of s.connectsTo) expect(kinds.has(to)).toBe(true);
+  });
+});
+
+describe('teaching content', () => {
+  it('explains every service in plain English and how it behaves in the game', () => {
+    for (const s of services) {
+      expect(s.analogy.length, s.kind).toBeGreaterThan(20);
+      expect(s.inGame.length, s.kind).toBeGreaterThan(40);
+    }
+  });
+
+  it('has the basic concepts with unique ids', () => {
+    expect(concepts.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(concepts.map((c) => c.id)).size).toBe(concepts.length);
   });
 });
 
