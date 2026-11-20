@@ -1,0 +1,162 @@
+name: Deploy
+
+# Pull requests: terraform plan for dev (read-only role), shown in the job summary.
+# Push to main: plan and apply dev, then upload the site.
+# Manual run: deploy dev or prod. The "prod" GitHub environment should require a reviewer.
+#
+# AWS access uses GitHub OIDC: each job exchanges a short-lived GitHub token for temporary
+# credentials from an IAM role whose trust policy only accepts this repository. No AWS keys
+# are stored in GitHub. See infra/terraform/README.md for the one-time setup.
+
+on:
+  pull_request:
+    paths: ['infra/**', 'services/**', 'packages/**', '.github/workflows/deploy.yml']
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_VERSION: 1.11.4
+  AWS_REGION: ${{ vars.AWS_REGION || 'eu-west-2' }}
+
+jobs:
+  plan:
+    name: Terraform plan (dev)
+    if: github.event_name == 'pull_request' && vars.AWS_PLAN_ROLE_ARN != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency: plan-${{ github.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Bundle Lambda handlers
+        run: pnpm --filter @cloud-architect/api build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Init
+        working-directory: infra/terraform/envs/dev
+        run: >
+          terraform init -input=false
+          -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+          -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Plan
+        working-directory: infra/terraform/envs/dev
+        env:
+          TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+        run: |
+          terraform plan -input=false -lock=false -no-color -out=tfplan
+          {
+            echo '### Terraform plan (dev)'
+            echo '```'
+            terraform show -no-color tfplan | tail -n 200
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    name: Deploy ${{ inputs.environment || 'dev' }}
+    if: >
+      github.event_name != 'pull_request' &&
+      ((inputs.environment || 'dev') == 'prod' && vars.AWS_DEPLOY_ROLE_ARN_PROD != '' ||
+       (inputs.environment || 'dev') == 'dev' && vars.AWS_DEPLOY_ROLE_ARN_DEV != '')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment || 'dev' }}
+      url: ${{ steps.outputs.outputs.site_url }}
+    # Never run two applies against the same state at once.
+    concurrency:
+      group: deploy-${{ inputs.environment || 'dev' }}
+      cancel-in-progress: false
+    env:
+      ENVIRONMENT: ${{ inputs.environment || 'dev' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Test before deploying
+        run: pnpm test
+
+      - name: Build web app and Lambda bundles
+        run: pnpm build
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.ENVIRONMENT == 'prod' && vars.AWS_DEPLOY_ROLE_ARN_PROD || vars.AWS_DEPLOY_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: infra/terraform/envs/${{ env.ENVIRONMENT }}
+        run: >
+          terraform init -input=false
+          -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+          -backend-config="region=${{ env.AWS_REGION }}"
+
+      - name: Terraform plan
+        working-directory: infra/terraform/envs/${{ env.ENVIRONMENT }}
+        env:
+          TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Terraform apply
+        working-directory: infra/terraform/envs/${{ env.ENVIRONMENT }}
+        run: terraform apply -input=false tfplan
+
+      - name: Read outputs
+        id: outputs
+        working-directory: infra/terraform/envs/${{ env.ENVIRONMENT }}
+        run: |
+          echo "site_url=$(terraform output -raw site_url)" >> "$GITHUB_OUTPUT"
+          echo "bucket=$(terraform output -raw site_bucket)" >> "$GITHUB_OUTPUT"
+          echo "distribution=$(terraform output -raw distribution_id)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload site
+        run: |
+          # Hashed assets are immutable; index.html must always be revalidated.
+          aws s3 sync apps/web/dist "s3://${{ steps.outputs.outputs.bucket }}" --delete \
+            --exclude index.html --cache-control "public, max-age=31536000, immutable"
+          aws s3 cp apps/web/dist/index.html "s3://${{ steps.outputs.outputs.bucket }}/index.html" \
+            --cache-control "no-cache"
+
+      - name: Invalidate CloudFront
+        run: >
+          aws cloudfront create-invalidation
+          --distribution-id "${{ steps.outputs.outputs.distribution }}"
+          --paths /index.html /
+
+      - name: Smoke test
+        run: curl --fail --silent --show-error --retry 5 --retry-delay 10 "${{ steps.outputs.outputs.site_url }}" > /dev/null
