@@ -135,7 +135,24 @@ export function objectiveLabel(o: Objective, catalogue?: Catalogue): string {
         healthChecks: 'Load balancer health checks are on',
         alarms: 'Every server has CloudWatch alarms',
         multiAz: 'Web servers span two Availability Zones',
+        multiAzDatabase: 'The database has a Multi-AZ standby',
+        dlq: 'Every queue has a dead-letter queue',
+        sharedSessions: 'Sessions are stored outside the servers',
       }[o.check];
+    case 'maxStaleness':
+      return `Data shown to customers is at most ${o.maxSec} s old`;
+    case 'maxRpo':
+      return o.maxMinutes === 0
+        ? 'No orders lost in a disaster'
+        : `At most ${o.maxMinutes} minutes of orders lost in a disaster`;
+    case 'queueDrained':
+      return 'Every queue is empty by midnight';
+    case 'noLostMessages':
+      return 'No events lost on the way to a consumer';
+    case 'payments':
+      return `At least ${pct(o.min, o.min >= 0.999 ? 1 : 0)} of orders charged by midnight`;
+    case 'noSessionLoss':
+      return 'No customer is logged out by a failure';
   }
 }
 
@@ -196,12 +213,68 @@ function evaluateObjective(
           break;
         case 'multiAz': {
           const tier = computeTier(design, catalogue);
-          r = { pass: tier.azs.size >= 2, actual: `${tier.azs.size} AZ(s)` };
+          // Lambda runs across every AZ in the region by default.
+          const serverless = tier.count === 0 && reachable.some((n) => n.kind === 'lambda');
+          r = serverless
+            ? { pass: true, actual: 'Lambda: all AZs' }
+            : { pass: tier.azs.size >= 2, actual: `${tier.azs.size} AZ(s)` };
+          break;
+        }
+        case 'multiAzDatabase':
+          r = all(['rds'], (c) => c.multiAz);
+          break;
+        case 'dlq':
+          r = all(['sqs'], (c) => c.dlq);
+          break;
+        case 'sharedSessions': {
+          const nodes = reachable.filter((n) => n.kind === 'ec2' || n.kind === 'asg');
+          const ok = nodes.filter(
+            (n) =>
+              catalogue.configOf(n).sessionStore === 'cache' &&
+              (g.children.get(n.id) ?? []).some((c) => c.kind === 'elasticache'),
+          ).length;
+          r = { pass: nodes.length > 0 && ok === nodes.length, actual: `${ok} of ${nodes.length}` };
           break;
         }
       }
       return { objective: o, label, ...r };
     }
+    case 'maxStaleness':
+      return {
+        objective: o,
+        label,
+        pass: metrics.stalenessSec <= o.maxSec,
+        actual: `${Math.round(metrics.stalenessSec)} s`,
+      };
+    case 'maxRpo':
+      return {
+        objective: o,
+        label,
+        pass: metrics.rpoMinutes <= o.maxMinutes,
+        actual: Number.isFinite(metrics.rpoMinutes) ? `${metrics.rpoMinutes} min` : 'all data',
+      };
+    case 'queueDrained': {
+      const left = metrics.queue.endBacklog + metrics.queue.poisonLeft;
+      return { objective: o, label, pass: left < 1, actual: `${left.toLocaleString('en-US')} waiting` };
+    }
+    case 'noLostMessages':
+      return {
+        objective: o,
+        label,
+        pass: metrics.lostMessages < 1,
+        actual: `${metrics.lostMessages.toLocaleString('en-US')} lost`,
+      };
+    case 'payments': {
+      const rate = metrics.ordersPlaced > 0 ? metrics.ordersCharged / metrics.ordersPlaced : 0;
+      return { objective: o, label, pass: rate >= o.min, actual: pct(rate, 2) };
+    }
+    case 'noSessionLoss':
+      return {
+        objective: o,
+        label,
+        pass: metrics.sessionsLost < 1,
+        actual: `${metrics.sessionsLost.toLocaleString('en-US')} logged out`,
+      };
   }
 }
 
@@ -223,6 +296,9 @@ function pillarScores(
       ? 100
       : 100 * (1 - (0.5 * (availTarget - m.availability)) / Math.max(1e-4, 1 - availTarget));
   reliability -= 8 * spofs.length;
+  if (m.lostMessages > 0) reliability -= 15;
+  if (m.sessionsLost > 0) reliability -= 10;
+  if (m.queue.poisonLeft > 0) reliability -= 10;
   if (m.dataLoss) reliability = 0;
 
   // Performance: p95 against target.
@@ -329,6 +405,59 @@ function buildHints(args: {
       `You are over budget. The biggest line item is ${top?.label} at ${usd(top?.monthly ?? 0)}/month. Is it right-sized?`,
     );
   }
+  // Hints for the services introduced after Act 3.
+  for (const [id, ratio] of Object.entries(metrics.connectionPeak)) {
+    if (ratio <= 1) continue;
+    const node = design.nodes.find((n) => n.id === id)!;
+    hints.push(
+      `${nodeLabel(node, catalogue)} ran out of connections (${Math.round(ratio * 100)}% of its limit). Each Lambda execution opens its own connection: put RDS Proxy in between to pool them.`,
+    );
+  }
+  if (metrics.throttled > 0) {
+    hints.push(
+      'DynamoDB throttled requests because one partition key was too hot. Pick a key with many distinct values, or shard hot keys by adding a suffix.',
+    );
+  }
+  if (metrics.queue.poisonLeft > 0) {
+    hints.push(
+      'Malformed messages kept failing and never left the queue. Turn on a dead-letter queue to set them aside.',
+    );
+  } else if (metrics.queue.endBacklog > 0) {
+    hints.push(
+      'Messages were still waiting at midnight. Give the queue more consumer capacity (a bigger Lambda concurrency or more workers).',
+    );
+  }
+  if (metrics.lostMessages > 0) {
+    hints.push(
+      'Events were dropped when a subscriber could not keep up. Put an SQS queue between the topic and the consumer so nothing is lost.',
+    );
+  }
+  if (metrics.ordersPlaced > 0 && metrics.ordersCharged / metrics.ordersPlaced < 0.99) {
+    const reachesPayment = design.nodes.some(
+      (n) => n.kind === 'payment' && buildGraph(design).reachable.has(n.id),
+    );
+    hints.push(
+      reachesPayment
+        ? 'Some orders were never charged. If the payment provider fails, a queue lets you keep the order and charge it when the provider is back.'
+        : 'Orders must be charged: connect the code that handles orders to the payment provider.',
+    );
+  }
+  if (metrics.sessionsLost > 0) {
+    hints.push(
+      'Customers were logged out when a server disappeared. Store sessions in ElastiCache so any server can serve anyone.',
+    );
+  }
+  if (metrics.coldStartShare > 0.05) {
+    hints.push(
+      `${Math.round(metrics.coldStartShare * 100)}% of Lambda calls were cold starts. More memory makes cold starts shorter.`,
+    );
+  }
+  if (!Number.isFinite(metrics.rpoMinutes)) {
+    hints.push(
+      'The table was dropped and there were no backups. Automated backups allow point-in-time restore.',
+    );
+  }
+
   for (const o of objectives) {
     if (o.pass || o.objective.type !== 'config') continue;
     hints.push(`Objective not met: ${o.label}. Select the component and change its settings.`);

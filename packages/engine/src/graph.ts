@@ -1,5 +1,5 @@
 import type { Design, DesignNode, Level } from '@cloud-architect/content';
-import { type Catalogue, isCompute, nodeLabel } from './catalog';
+import { type Catalogue, isAsync, isCompute, isWorker, nodeLabel } from './catalog';
 
 export interface Graph {
   nodes: Map<string, DesignNode>;
@@ -78,6 +78,27 @@ export function validateDesign(design: Design, catalogue: Catalogue, level?: Lev
       }
       if (n.kind === 'alb' && !(g.children.get(n.id) ?? []).length) {
         warnings.push(`${nodeLabel(n, catalogue)} has no targets.`);
+      }
+      const kids = g.children.get(n.id) ?? [];
+      const label = nodeLabel(n, catalogue);
+      if (n.kind === 'sqs' && !kids.some((c) => isWorker(c.kind))) {
+        warnings.push(`${label} has no consumer, so messages will pile up and never be processed.`);
+      }
+      if ((n.kind === 'sns' || n.kind === 'eventbridge') && !kids.length) {
+        warnings.push(`${label} has no subscribers, so published events go nowhere.`);
+      }
+      if (n.kind === 'api_gateway' && !kids.length) warnings.push(`${label} has no integration behind it.`);
+      if (n.kind === 'rds_proxy' && !kids.some((c) => c.kind === 'rds')) {
+        warnings.push(`${label} is not connected to a database.`);
+      }
+      if (
+        isCompute(n.kind) &&
+        catalogue.configOf(n).sessionStore === 'cache' &&
+        !kids.some((c) => c.kind === 'elasticache')
+      ) {
+        warnings.push(
+          `${label} keeps sessions in a cache, but no ElastiCache is connected, so they stay on the instance.`,
+        );
       }
     }
   }
@@ -196,7 +217,9 @@ export function singlePointsOfFailure(design: Design, catalogue: Catalogue): Fin
   const g = buildGraph(design);
   for (const n of design.nodes) {
     if (!isCompute(n.kind) || !g.reachable.has(n.id)) continue;
-    const hasDb = (g.children.get(n.id) ?? []).some((c) => c.kind === 'rds');
+    const hasDb = (g.children.get(n.id) ?? []).some(
+      (c) => c.kind === 'rds' || c.kind === 'rds_proxy' || c.kind === 'dynamodb' || isAsync(c.kind),
+    );
     if (!hasDb) {
       out.push({
         nodeId: n.id,
@@ -223,6 +246,7 @@ export function operationsChecks(design: Design, catalogue: Catalogue): OpsCheck
     if (isCompute(n.kind)) out.push({ label: `${label}: CloudWatch alarms`, pass: c.alarms });
     if (n.kind === 'alb') out.push({ label: `${label}: target health checks`, pass: c.healthChecks });
     if (n.kind === 'rds') out.push({ label: `${label}: automated backups`, pass: c.backupRetentionDays > 0 });
+    if (n.kind === 'sqs') out.push({ label: `${label}: dead-letter queue`, pass: c.dlq });
   }
   return out;
 }

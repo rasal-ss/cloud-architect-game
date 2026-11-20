@@ -14,6 +14,10 @@ export interface NodeTick {
   instances?: number;
   /** Instances booting (Auto Scaling Groups only). */
   pending?: number;
+  /** Messages waiting (SQS only). */
+  backlog?: number;
+  /** Concurrent executions (Lambda only). */
+  concurrency?: number;
 }
 
 export interface EdgeTick {
@@ -72,6 +76,31 @@ export interface Metrics {
   peakUtil: Record<string, number>;
   /** 95th percentile of per-minute utilisation per node. */
   p95Util: Record<string, number>;
+  /** Oldest data a read could return (cache TTL, replica lag), in seconds. */
+  stalenessSec: number;
+  /** Minutes of orders lost in a disaster; Infinity if everything was lost. */
+  rpoMinutes: number;
+  /** Queues: largest backlog, backlog left at the end, longest wait, messages sent to a DLQ. */
+  queue: {
+    peakBacklog: number;
+    endBacklog: number;
+    maxDelayMin: number;
+    deadLettered: number;
+    poisonLeft: number;
+  };
+  /** Events or messages dropped before reaching a consumer. */
+  lostMessages: number;
+  /** Orders placed by customers and orders successfully charged by the payment provider. */
+  ordersPlaced: number;
+  ordersCharged: number;
+  /** Logged-in customers who lost their session because a server disappeared. */
+  sessionsLost: number;
+  /** Peak database connections as a share of the limit, per relational node. */
+  connectionPeak: Record<string, number>;
+  /** Share of Lambda invocations that hit a cold start. */
+  coldStartShare: number;
+  /** DynamoDB requests rejected because one partition was too hot. */
+  throttled: number;
 }
 
 export interface ObjectiveResult {

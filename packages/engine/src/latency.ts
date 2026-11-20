@@ -48,6 +48,15 @@ export function compress(points: Point[]): Dist {
   return pts;
 }
 
+/** Distribution of the sum of two independent latencies (one call after another). */
+export function convolve(a: Dist, b: Dist): Dist {
+  if (!a.length) return b;
+  if (!b.length) return a;
+  const out: Point[] = [];
+  for (const x of a) for (const y of b) out.push({ p: x.p * y.p, ms: x.ms + y.ms });
+  return compress(out);
+}
+
 export function percentileOfDist(dist: Dist, q: number): number {
   let acc = 0;
   for (const pt of dist) {
