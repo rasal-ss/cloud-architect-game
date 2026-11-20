@@ -9,7 +9,7 @@ _"Factorio meets the AWS Well-Architected Framework."_
 ![Terraform](https://img.shields.io/badge/IaC-Terraform-7b42bc)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-**▶ Live demo:** _coming soon on Netlify_
+**▶ [Play the live demo](https://cloud-architect-game-web.netlify.app/)** (hosted on Netlify)
 
 ![A 10x traffic spike hitting an auto-scaled fleet: traffic dots flow from customers through the load balancer, the fleet has scaled to 8 instances, and the timeline shows the spike and an instance crash](docs/screenshots/spike.png)
 
@@ -201,7 +201,7 @@ docs/GAME_DESIGN.md    The full game design document
 
 ### Live demo: Netlify
 
-The game is deployed to Netlify as a static site. Import the repository in Netlify and it picks up
+The game is deployed to Netlify as a static site at **https://cloud-architect-game-web.netlify.app/**. Import the repository in Netlify and it picks up
 [`netlify.toml`](netlify.toml): it builds `apps/web` with pnpm on Node.js 22 and publishes `apps/web/dist`.
 Every push to `main` redeploys, and pull requests get preview links. Hashed assets are cached for a year and
 `index.html` is always revalidated.
