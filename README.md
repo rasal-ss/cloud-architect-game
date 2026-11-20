@@ -1,3 +1,212 @@
 # Cloud Architect: Scale or Fail
 
-Work in progress. See [docs/GAME_DESIGN.md](docs/GAME_DESIGN.md).
+**A browser puzzle game where you design, scale and rescue AWS architectures, from one server to a fleet that survives a 10x traffic spike.**
+
+_"Factorio meets the AWS Well-Architected Framework."_
+
+[![CI](https://github.com/YOUR_GITHUB_USER/cloud-architect-game/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USER/cloud-architect-game/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
+![Terraform](https://img.shields.io/badge/IaC-Terraform-7b42bc)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
+**▶ Live demo:** _coming soon_ (deployed to CloudFront by the [Deploy workflow](.github/workflows/deploy.yml))
+
+![A 10x traffic spike hitting an auto-scaled fleet: traffic dots flow from customers through the load balancer, the fleet has scaled to 8 instances, and the timeline shows the spike and an instance crash](docs/screenshots/spike.png)
+
+Every level is a real business problem with a budget, a traffic curve and failures that **will** happen. Drag
+AWS services onto the canvas, connect them, configure them, then press Run. A simulated day plays out in 60
+seconds: requests flow as coloured dots, components glow green, yellow or red with load, and chaos strikes at
+dinner time. A report card scores you on the six pillars of the Well-Architected Framework.
+
+## Why this project
+
+This repository is a portfolio piece for DevOps, AWS Cloud and Tech Lead roles. It shows the same skills three
+ways:
+
+| Layer                  | What it demonstrates                                                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The game's content** | System design knowledge: scaling, high availability, CDNs, right-sizing, data durability, security groups, health checks, alarms and cost trade-offs          |
+| **The game's code**    | A deterministic simulation engine with queueing, autoscaling and failure models; a graph editor; data-driven content validated by schemas; 98 automated tests |
+| **The game's hosting** | Serverless AWS with Terraform (dev and prod), GitHub Actions with OIDC (no long-lived keys), least-privilege IAM, alarms, dashboards and a budget alert       |
+
+## Play
+
+The Phase 1 prototype has the first three acts of the campaign (15 levels) and a sandbox.
+
+| Act                   | Story                                   | Levels                                                                                                                                     |
+| --------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **1. Hello Cloud**    | The founder's weekend project, 10 users | One EC2 server · Elastic IP and security groups · Images in S3 · CloudFront with a private bucket · **Boss: launch day on $20**            |
+| **2. First Database** | First paying customers, 1k users        | Database on the server · Move to RDS (before a crash) · Right-sizing · Backups and private databases · **Boss: don't lose a single order** |
+| **3. Growing Pains**  | Featured on the app store, 50k users    | ALB and two servers · Auto Scaling on CPU · Two Availability Zones · Health checks and alarms · **Boss: 10x in 3 minutes**                 |
+
+Services in Phase 1: **EC2, Auto Scaling Groups, ALB, CloudFront, S3, RDS, RDS read replicas, ElastiCache**
+(replicas and caching are available in the sandbox and unlock in the campaign in Act 4).
+Chaos events: **traffic spikes** and **instance crashes**.
+
+![Report card for the boss level: availability of 99.48% just misses the 99.5% target. The card shows pillar scores, a cost breakdown, the fleet as the bottleneck at 220% load, hints and a post-mortem timeline](docs/screenshots/report.png)
+
+## Architecture
+
+The simulation runs entirely in the player's browser, in a Web Worker. The backend only stores progress, shared
+designs and leaderboards, so the AWS bill stays near zero when nobody is playing.
+
+```mermaid
+flowchart LR
+    player([Player's browser<br/>React + React Flow<br/>engine in a Web Worker])
+
+    subgraph edge[Edge]
+        cf[CloudFront<br/>HTTPS, security headers]
+    end
+
+    subgraph aws[AWS region]
+        s3[(S3 bucket<br/>private, OAC)]
+        cognito[Cognito<br/>user pool, PKCE]
+        apigw[API Gateway<br/>HTTP API + JWT authorizer]
+        subgraph lambdas[Lambda, Node.js 22 on arm64]
+            lp[progress<br/>re-runs the engine<br/>to verify scores]
+            ld[designs]
+            ll[leaderboard]
+        end
+        ddb[(DynamoDB<br/>single table)]
+        cw[CloudWatch<br/>alarms, dashboard, X-Ray]
+        sns[SNS alerts]
+        budget[AWS Budgets]
+    end
+
+    subgraph cicd[GitHub]
+        gha[GitHub Actions]
+    end
+
+    player -->|game client| cf --> s3
+    player -->|optional sign-in| cognito
+    player -->|progress, designs,<br/>leaderboards| apigw
+    apigw -. validates JWT .-> cognito
+    apigw --> lp & ld & ll
+    lp & ld & ll --> ddb
+    lambdas -.-> cw
+    cw --> sns
+    budget --> sns
+    gha -->|OIDC: short-lived role| aws
+```
+
+Inside the repository:
+
+```mermaid
+flowchart TB
+    content[packages/content<br/>services, levels, incidents as JSON<br/>validated with zod]
+    engine[packages/engine<br/>pure TypeScript simulation<br/>no UI, no platform APIs]
+    web[apps/web<br/>React, React Flow, Zustand]
+    worker[Web Worker]
+    api[services/api<br/>Lambda handlers]
+    infra[infra/terraform<br/>bootstrap, modules, dev, prod]
+
+    content --> engine
+    engine --> worker --> web
+    content --> web
+    engine --> api
+    content --> api
+    api -. bundled and deployed by .-> infra
+    web -. uploaded to S3 by CI .-> infra
+```
+
+## Tech stack
+
+| Area           | Choice                                                                                       |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| Monorepo       | pnpm workspaces, TypeScript (strict), ESLint, Prettier                                       |
+| Frontend       | React 19, Vite 6, React Flow 12 for the canvas, Zustand for state                            |
+| Simulation     | `packages/engine`: pure TypeScript, runs in a Web Worker, Node.js and Lambda                 |
+| Content        | JSON validated with zod schemas at load time; reference solutions per level                  |
+| Backend        | API Gateway HTTP API, Lambda (Node.js 22, arm64), DynamoDB single-table design               |
+| Auth           | Cognito with PKCE (optional Google sign-in); the game is fully playable as a guest           |
+| Infrastructure | Terraform 1.11, reusable modules, dev and prod, S3 remote state with native lock files       |
+| CI/CD          | GitHub Actions: lint, typecheck, tests, build, `terraform validate`; plan and apply via OIDC |
+| Observability  | CloudWatch alarms and dashboard, X-Ray tracing, API access logs, AWS Budgets alert           |
+| Testing        | Vitest across engine, content, API and web; level solvability tests run in CI                |
+
+## How the simulation works
+
+The engine is the heart of the game. It has to be **believable, explainable and deterministic**: the same design
+always gives the same result.
+
+1. **The design is a directed graph.** Each node is a service with a capacity, a latency and a price. Edges mean
+   "sends requests to" and are checked against connection rules (Users → ALB is fine, Users → RDS is not).
+2. **Traffic follows a daily curve.** Each tick is one simulated minute (1,440 per day). Requests are split into
+   static files, reads and writes, with seeded random noise.
+3. **Routing, in topological order.** Users and CloudFront pick the best-suited target per request type
+   (CloudFront for images, the load balancer for pages). CloudFront answers cache hits at the edge, based on its
+   TTL. The ALB splits by healthy capacity. Servers send reads to a cache, replicas or the primary, and writes to
+   the primary. A server with no database keeps one on its own disk, which costs CPU, and is lost if it crashes.
+4. **Capacity and queueing.** Every request costs a node some work units. Latency is nearly flat below 80% load,
+   then rises sharply (an M/M/c-style knee); above 100%, the excess is dropped.
+5. **Latency as distributions, not averages.** A backward pass combines each node's latency with its children's
+   into small probability distributions, so a 90% cache hit rate really gives a fast p50 and a slower p95.
+   Whole-day p50/p95/p99 come from a log-bucketed histogram.
+6. **Autoscaling and failure.** Auto Scaling Groups track a target utilisation, with a 3-minute warm-up and a
+   scale-in cooldown. Crashes pick a running instance with the seeded RNG. Health checks decide whether the ALB
+   keeps routing to a dead target; alarms decide how fast a lone server recovers.
+7. **Cost.** Hourly prices per component (per running instance for ASGs) plus per-request charges, projected to
+   a monthly figure live during the run.
+8. **Scoring.** Objectives (availability, p95, no data loss, budget, configuration checks) decide pass or fail.
+   A 0-100 score weights the six Well-Architected pillars per level and turns into 1-3 stars. The report card adds
+   bottlenecks, hints and a post-mortem timeline.
+
+**Every level is proven solvable in CI.** The engine test suite runs each level's reference solution and requires
+all objectives and 3 stars, across several random seeds. It also checks that each starting design fails, and that
+key lessons hold, for example that a bigger server instead of CloudFront blows the $20 budget in the Act 1 boss.
+
+Game balance in numbers: in-game prices and capacities are tuned for gameplay and are approximate, not copied
+from AWS pricing. The game never touches a real AWS account.
+
+## Run locally
+
+Requirements: Node.js 22 and pnpm 10.
+
+```bash
+pnpm install
+```
+
+```bash
+pnpm dev
+```
+
+Open http://localhost:5173. Other useful commands:
+
+```bash
+pnpm test        # 98 tests: engine, level solvability, content schemas, API, web
+pnpm check       # lint + typecheck + test + build, exactly what CI runs
+```
+
+## Project structure
+
+```
+apps/web/              Game client: canvas, palette, inspector, playback, report card
+packages/engine/       Simulation engine and scoring (UI-free, deterministic)
+packages/content/      Service catalogue, campaign levels and reference solutions (JSON + zod)
+services/api/          Lambda handlers: progress (server-verified), shared designs, leaderboards
+infra/terraform/       Bootstrap, reusable modules, dev and prod environments
+.github/workflows/     CI and Deploy (Terraform plan/apply with GitHub OIDC)
+docs/GAME_DESIGN.md    The full game design document
+```
+
+## Deployment
+
+Infrastructure is Terraform, deployed by GitHub Actions with short-lived credentials from GitHub OIDC. Pull
+requests get a `terraform plan`; merges to `main` deploy `dev`; `prod` is a manual run behind an approval. See
+[infra/terraform/README.md](infra/terraform/README.md) for the one-time bootstrap and the cost guard rails.
+
+## Roadmap
+
+| Phase | Name                     | Scope                                                                                                                                                                                     | Status      |
+| ----- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| 1     | **Prototype**            | Simulation engine, canvas, 8 services, traffic spike and instance crash, report card, Acts 1-3 (15 levels), sandbox                                                                       | ✅ Done     |
+| 2     | **Core game**            | Acts 4-7: read replicas and caching, Multi-AZ RDS, serverless (Lambda, API Gateway, DynamoDB, RDS Proxy), SQS/SNS/Step Functions; more incidents (AZ outage, failover, connection storms) | Next        |
+| 3     | **Data Architect mode**  | Second campaign: schema designer, Query Lab with execution plans, transactions, DynamoDB key design board, polyglot persistence                                                           | Planned     |
+| 4     | **Cloud backend launch** | Sign-in with Cognito, cloud saves, shared design links, server-verified leaderboards, daily challenges (backend already built)                                                            | Infra ready |
+| 5     | **Expansion**            | Acts 8-15 (security, analytics, CI/CD, multi-region, AI, the IPO), **Export to Terraform**, Incident Response and Cost Crusher modes                                                      | Planned     |
+
+The full vision is in the [game design document](docs/GAME_DESIGN.md).
+
+## License
+
+[MIT](LICENSE)
