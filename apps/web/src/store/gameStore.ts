@@ -12,6 +12,7 @@ import { catalogue } from '../lib/catalogue';
 import { type ServiceFlowNode, type TrafficFlowEdge, fromFlow, nextId, toFlow } from '../lib/design';
 import { type SandboxSettings, DEFAULT_SANDBOX, SANDBOX_ID, sandboxLevel } from '../lib/sandbox';
 import { type LevelProgress, loadDesign, loadProgress, recordResult, saveDesign } from '../lib/storage';
+import { type LevelIntro, introFor, markSeen } from '../lib/tutorial';
 import { runSimulation } from '../sim/client';
 
 export type Speed = 1 | 4 | 16;
@@ -37,7 +38,14 @@ interface GameState {
   /** Fractional playback position in simulated minutes. */
   cursor: number;
   showReport: boolean;
+  /** Open guide topic: 'basics', a concept id or a service kind. Null when closed. */
+  guide: string | null;
+  /** Introduction shown when a level unlocks something new. */
+  intro: LevelIntro | null;
 
+  openGuide: (topic?: string) => void;
+  closeGuide: () => void;
+  dismissIntro: () => void;
   openLevel: (id: string) => void;
   openSandbox: () => void;
   backToMenu: () => void;
@@ -79,7 +87,16 @@ export const useGame = create<GameState>()((set, get) => {
   const load = (level: Level) => {
     const saved = loadDesign(level.id);
     const { nodes, edges } = toFlow(saved ?? level.startingDesign);
-    set({ screen: 'level', level, nodes, edges, selectedId: null, ...invalidated });
+    set({
+      screen: 'level',
+      level,
+      nodes,
+      edges,
+      selectedId: null,
+      guide: null,
+      intro: level.id === SANDBOX_ID ? null : introFor(level),
+      ...invalidated,
+    });
   };
 
   return {
@@ -97,13 +114,24 @@ export const useGame = create<GameState>()((set, get) => {
     result: null,
     cursor: 0,
     showReport: false,
+    guide: null,
+    intro: null,
 
+    openGuide: (topic = 'basics') => set({ guide: topic }),
+    closeGuide: () => set({ guide: null }),
+    dismissIntro: () => {
+      const { intro } = get();
+      if (intro) {
+        markSeen([...(intro.howToPlay ? ['how-to-play'] : []), ...intro.kinds.map((k) => `service:${k}`)]);
+      }
+      set({ intro: null });
+    },
     openLevel: (id) => {
       const level = getLevel(id);
       if (level) load(level);
     },
     openSandbox: () => load(sandboxLevel(get().sandbox)),
-    backToMenu: () => set({ screen: 'menu', level: null, ...invalidated }),
+    backToMenu: () => set({ screen: 'menu', level: null, intro: null, guide: null, ...invalidated }),
     updateSandbox: (s) => {
       const sandbox = { ...get().sandbox, ...s };
       set({ sandbox, level: sandboxLevel(sandbox), ...invalidated });

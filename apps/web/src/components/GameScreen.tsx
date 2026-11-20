@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useGame } from '../store/gameStore';
 import { Canvas } from './Canvas';
 import { Inspector } from './Inspector';
+import { LevelIntro } from './LevelIntro';
 import { Palette } from './Palette';
 import { ReportCard } from './ReportCard';
 import { RunDock } from './RunDock';
@@ -61,6 +62,7 @@ export function GameScreen() {
           <Inspector />
         </div>
         <ReportCard />
+        <LevelIntro />
         {toast && (
           <div className="toast" role="alert">
             {toast}

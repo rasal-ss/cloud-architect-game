@@ -29,6 +29,7 @@ function NodeSettings({ id }: { id: string }) {
   const update = useGame((s) => s.updateNode);
   const remove = useGame((s) => s.removeNode);
   const select = useGame((s) => s.select);
+  const openGuide = useGame((s) => s.openGuide);
   const snapshots = useGame((s) => s.snapshots);
   const cursor = useGame((s) => s.cursor);
   const series = useMemo(() => snapshots.map((s) => s.nodes[id]?.util ?? 0), [snapshots, id]);
@@ -57,7 +58,7 @@ function NodeSettings({ id }: { id: string }) {
           <IconClose />
         </button>
       </header>
-      <p className="node-desc">{spec.description}</p>
+      <p className="node-desc">{spec.analogy}</p>
 
       {tick && kind !== 'users' && (
         <section className="panel-section live">
@@ -241,18 +242,17 @@ function NodeSettings({ id }: { id: string }) {
       )}
 
       <details className="panel-section disclosure">
-        <summary>When to use {spec.shortName}</summary>
+        <summary>How {spec.shortName} works</summary>
+        <p>{spec.inGame}</p>
         <p>
           <b>Good for:</b> {spec.whenToUse}
         </p>
         <p>
           <b>Avoid for:</b> {spec.whenNotToUse}
         </p>
-        {spec.docsUrl && (
-          <a href={spec.docsUrl} target="_blank" rel="noreferrer">
-            AWS documentation ↗
-          </a>
-        )}
+        <button className="link-btn" onClick={() => openGuide(kind)}>
+          Open in the service guide
+        </button>
       </details>
 
       {!node.data.locked && (

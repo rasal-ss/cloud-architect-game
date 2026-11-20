@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { GameScreen } from './components/GameScreen';
+import { Guide } from './components/Guide';
 import { LevelSelect } from './components/LevelSelect';
 import { useGame } from './store/gameStore';
 
@@ -10,5 +11,10 @@ export function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [screen, levelId]);
-  return screen === 'menu' ? <LevelSelect /> : <GameScreen />;
+  return (
+    <>
+      {screen === 'menu' ? <LevelSelect /> : <GameScreen />}
+      <Guide />
+    </>
+  );
 }

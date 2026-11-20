@@ -3,6 +3,7 @@ import { catalogue, money } from '../lib/catalogue';
 import { useGame } from '../store/gameStore';
 import { DRAG_MIME } from '../lib/design';
 import { Glyph } from './Glyph';
+import { IconInfo } from './icons';
 
 const ORDER: ServiceKind[] = ['cloudfront', 's3', 'alb', 'ec2', 'asg', 'elasticache', 'rds', 'rds_replica'];
 
@@ -10,6 +11,7 @@ export function Palette() {
   const level = useGame((s) => s.level);
   const addService = useGame((s) => s.addService);
   const nodeCount = useGame((s) => s.nodes.length);
+  const openGuide = useGame((s) => s.openGuide);
   if (!level) return null;
   const kinds = ORDER.filter((k) => (level.palette as readonly ServiceKind[]).includes(k));
 
@@ -21,7 +23,7 @@ export function Palette() {
           const spec = catalogue.get(kind);
           const from = spec.sizes?.[0]?.monthlyCost ?? spec.monthlyCost;
           return (
-            <li key={kind}>
+            <li key={kind} className="palette-row">
               <button
                 className="palette-item"
                 draggable
@@ -32,16 +34,24 @@ export function Palette() {
                 onClick={() =>
                   addService(kind, { x: 280 + (nodeCount % 3) * 40, y: 80 + (nodeCount % 5) * 90 })
                 }
-                title={`${spec.description} ${from > 0 ? `From ${money(from)}/month.` : 'Pay per request.'}`}
+                title={`${spec.analogy} ${from > 0 ? `From ${money(from)}/month.` : 'Pay per request.'}`}
               >
                 <Glyph kind={kind} />
                 <span>{spec.shortName}</span>
+              </button>
+              <button
+                className="palette-info"
+                onClick={() => openGuide(kind)}
+                aria-label={`What is ${spec.shortName}?`}
+                title={`What is ${spec.shortName}?`}
+              >
+                <IconInfo />
               </button>
             </li>
           );
         })}
       </ul>
-      <p className="palette-tip">Drag onto the canvas or click to add</p>
+      <p className="palette-tip">Drag onto the canvas or click to add. ⓘ explains each one.</p>
     </aside>
   );
 }

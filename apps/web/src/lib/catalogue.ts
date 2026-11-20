@@ -3,14 +3,14 @@ import { Catalogue } from '@cloud-architect/engine';
 
 export const catalogue = new Catalogue(services);
 
-/** Category colours, kept muted so health colours (green/amber/red) stand out. */
+/** Category colours, tuned for a dark background. Health colours (green/amber/red) stay distinct. */
 export const CATEGORY_COLOR: Record<string, string> = {
-  client: '#5f6470',
-  compute: '#c4620c',
-  networking: '#6a4fc4',
-  database: '#2b62c9',
-  caching: '#a8327f',
-  storage: '#4d7d14',
+  client: '#9aa3b2',
+  compute: '#f2994a',
+  networking: '#a990ff',
+  database: '#5ea8ff',
+  caching: '#f177c4',
+  storage: '#9bd25f',
 };
 
 export const KIND_GLYPH: Record<string, string> = {
@@ -26,12 +26,12 @@ export const KIND_GLYPH: Record<string, string> = {
 };
 
 export const REQUEST_COLOR = {
-  static: '#2f7de1',
-  read: '#16935a',
-  write: '#d9751c',
+  static: '#5aa9ff',
+  read: '#3ccf87',
+  write: '#ffa04d',
 } as const;
 
-export const FAIL_COLOR = '#d23b2e';
+export const FAIL_COLOR = '#ff6a5f';
 
 export const money = (x: number) =>
   x >= 10_000 ? `$${(x / 1000).toFixed(1)}k` : `$${x.toFixed(x < 100 ? 2 : 0)}`;

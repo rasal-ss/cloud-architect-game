@@ -49,6 +49,17 @@ export const IconCross = (p: P) => (
     <path d="m5 5 6 6M11 5l-6 6" />
   </svg>
 );
+export const IconBook = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M2.5 3.5c2-.8 3.8-.8 5.5.5v9c-1.7-1.3-3.5-1.3-5.5-.5zM13.5 3.5c-2-.8-3.8-.8-5.5.5v9c1.7-1.3 3.5-1.3 5.5-.5z" />
+  </svg>
+);
+export const IconInfo = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="8" cy="8" r="6" />
+    <path d="M8 7.2v3.6M8 5.2v.1" />
+  </svg>
+);
 export const IconArrow = (p: P) => (
   <svg {...base(p)}>
     <path d="M3 8h10M9 4l4 4-4 4" />

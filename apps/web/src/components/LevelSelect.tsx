@@ -1,11 +1,12 @@
 import { acts, levels, levelsInAct } from '@cloud-architect/content';
 import { useGame } from '../store/gameStore';
-import { IconArrow, Stars } from './icons';
+import { IconArrow, IconBook, Stars } from './icons';
 
 export function LevelSelect() {
   const progress = useGame((s) => s.progress);
   const openLevel = useGame((s) => s.openLevel);
   const openSandbox = useGame((s) => s.openSandbox);
+  const openGuide = useGame((s) => s.openGuide);
   const totalStars = Object.values(progress).reduce((s, p) => s + p.stars, 0);
   const next =
     levels.find((l) => !progress[l.id]?.stars) ??
@@ -19,8 +20,13 @@ export function LevelSelect() {
         <span className="wordmark">
           <Logo /> Cloud Architect
         </span>
-        <span className="menu-stars" title="Stars earned">
-          <Stars count={1} size={13} label={false} /> {totalStars} / {levels.length * 3}
+        <span className="menu-bar-right">
+          <button className="btn ghost" onClick={() => openGuide()}>
+            <IconBook /> Service guide
+          </button>
+          <span className="menu-stars" title="Stars earned">
+            <Stars count={1} size={13} label={false} /> {totalStars} / {levels.length * 3}
+          </span>
         </span>
       </header>
 
@@ -37,8 +43,11 @@ export function LevelSelect() {
             {started ? 'Continue' : 'Start'} · {next.title.replace(/^Boss: /, '')}
             <IconArrow />
           </button>
+          <button className="btn ghost lg" onClick={() => openGuide()}>
+            New to AWS? Learn the basics
+          </button>
           <button className="btn ghost lg" onClick={openSandbox}>
-            Open sandbox
+            Sandbox
           </button>
         </div>
       </section>
@@ -85,7 +94,7 @@ export function Logo() {
       <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />
       <path
         d="M6 15.5h3.5l2-6 2.5 9 2-4.5H18"
-        stroke="#f4f2ec"
+        stroke="#0d0f12"
         strokeWidth="1.8"
         fill="none"
         strokeLinecap="round"

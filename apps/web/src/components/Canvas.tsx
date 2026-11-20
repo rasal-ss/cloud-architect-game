@@ -57,9 +57,9 @@ export function Canvas() {
         minZoom={0.25}
         fitViewOptions={{ padding: 0.12, maxZoom: 1, minZoom: 0.25 }}
         deleteKeyCode={['Backspace', 'Delete']}
-        colorMode="light"
+        colorMode="dark"
       >
-        <Background variant={BackgroundVariant.Lines} gap={24} color="#ebe7de" />
+        <Background variant={BackgroundVariant.Lines} gap={24} color="#1b1f26" />
         <Controls showInteractive={false} position="top-left" />
       </ReactFlow>
       <CoachMark />
