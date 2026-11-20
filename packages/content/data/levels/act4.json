@@ -1,0 +1,856 @@
+[
+  {
+    "id": "4-1",
+    "index": 1,
+    "title": "Read Replicas",
+    "from": "Raj, NimbusCart investor",
+    "brief": "We're at 200,000 customers and browsing has exploded: people check product pages ten times for every order. The database is pinned at 100% every evening. Upgrading it to the next size is eye-wateringly expensive. Is there a smarter way?",
+    "lesson": "Read replicas are copies of the database that serve reads. Most traffic is reads, so a couple of replicas can take most of the load off the primary for less than one huge instance.",
+    "budget": 400,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.42,
+        "write": 0.08
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "uses",
+        "kind": "rds_replica"
+      },
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "c7g.large",
+            "min": 2,
+            "max": 8,
+            "targetUtilization": 0.6,
+            "azs": 2,
+            "securityGroup": "web-only",
+            "alarms": true
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.t3.medium",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 1,
+      "cost": 1.5,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": [
+      "Connect the primary database to a replica, and the fleet to the replica: reads go to replicas, orders to the primary.",
+      "One replica might not be enough. Each replica also replays every write."
+    ],
+    "act": 4,
+    "seed": 1041,
+    "walkthrough": {
+      "steps": [
+        "Add two read replicas (db.t3.medium is enough).",
+        "Connect the orders database to each replica, so they receive every change.",
+        "Connect the web fleet to both replicas. Keep the fleet’s connection to the primary: orders still go there.",
+        "Run the day. Reads now go to the replicas and the primary only handles orders."
+      ],
+      "why": "Product browsing is most of the database work. Two small replicas share all the reads, while the primary handles writes at about 40% load. That costs less than jumping to a db.r6g.large, which is what upgrading the one database would take."
+    }
+  },
+  {
+    "id": "4-2",
+    "index": 2,
+    "title": "Cache-Aside with ElastiCache",
+    "from": "Raj, NimbusCart investor",
+    "brief": "Traffic doubled again. Your replicas worked, but the plan to keep adding more of them is getting expensive. Our engineers say the same 500 products are read millions of times a day. Can we stop asking the database the same question over and over?",
+    "lesson": "A cache keeps popular answers in memory. With cache-aside, servers check the cache first and only ask the database on a miss, so a $12 cache can replace several database replicas.",
+    "budget": 440,
+    "traffic": {
+      "peakRps": 1200,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.45,
+        "write": 0.05
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "uses",
+        "kind": "elasticache"
+      },
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "c7g.large",
+            "min": 2,
+            "max": 8,
+            "targetUtilization": 0.6,
+            "azs": 2,
+            "securityGroup": "web-only",
+            "alarms": true
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.t3.medium",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        },
+        {
+          "id": "rr1",
+          "kind": "rds_replica",
+          "x": 1060,
+          "y": 180,
+          "config": {
+            "size": "db.t3.medium",
+            "az": "b"
+          },
+          "label": "Read replica"
+        },
+        {
+          "id": "rr2",
+          "kind": "rds_replica",
+          "x": 1060,
+          "y": 420,
+          "config": {
+            "size": "db.t3.medium",
+            "az": "b"
+          },
+          "label": "Read replica"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        },
+        {
+          "id": "db-rr1",
+          "from": "db",
+          "to": "rr1"
+        },
+        {
+          "id": "db-rr2",
+          "from": "db",
+          "to": "rr2"
+        },
+        {
+          "id": "fleet-rr1",
+          "from": "fleet",
+          "to": "rr1"
+        },
+        {
+          "id": "fleet-rr2",
+          "from": "fleet",
+          "to": "rr2"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 1,
+      "cost": 2,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": [
+      "Connect the fleet to a cache and the cache to the database: reads try the cache first. Keep the fleet’s connection to the database for orders.",
+      "Once reads hit the cache, do you still need both replicas?"
+    ],
+    "act": 4,
+    "seed": 1042,
+    "walkthrough": {
+      "steps": [
+        "Add ElastiCache (cache.t3.micro).",
+        "Connect the fleet to the cache, and the cache to the orders database. Keep the fleet’s direct connection to the database for orders.",
+        "Set the cache TTL to 1 hour: product descriptions rarely change.",
+        "Delete both read replicas. The cache now answers almost every read.",
+        "Run the day."
+      ],
+      "why": "With a one-hour TTL about 94% of reads are answered from memory in a millisecond, so the primary only sees misses and orders. A $12 cache replaces two $52 replicas. Keeping the replicas, or adding more, goes over budget."
+    }
+  },
+  {
+    "id": "4-3",
+    "index": 3,
+    "title": "How Stale Is Too Stale?",
+    "from": "Priya, NimbusCart operations",
+    "brief": "Customers are furious: the site said tomatoes were in stock, and an hour later they were refunded. Stock levels on the site can be at most a minute old. Prices too. Keep the site fast, but no more stale data.",
+    "lesson": "The cache TTL is a trade-off: longer means more hits and a lighter database, but older data. Shorter TTLs push more reads to the database, so it may need help from a replica.",
+    "budget": 640,
+    "traffic": {
+      "peakRps": 1200,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.45,
+        "write": 0.05
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "maxStaleness",
+        "maxSec": 60
+      },
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "c7g.large",
+            "min": 2,
+            "max": 8,
+            "targetUtilization": 0.6,
+            "azs": 2,
+            "securityGroup": "web-only",
+            "alarms": true
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.t3.medium",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        },
+        {
+          "id": "cache",
+          "kind": "elasticache",
+          "x": 800,
+          "y": 140,
+          "config": {
+            "size": "cache.t3.micro",
+            "ttlSeconds": 3600
+          },
+          "label": "Cache"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-cache",
+          "from": "fleet",
+          "to": "cache"
+        },
+        {
+          "id": "cache-db",
+          "from": "cache",
+          "to": "db"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 1,
+      "cost": 1.5,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": [
+      "Select the cache: a TTL of 30 seconds keeps data under a minute old.",
+      "With a short TTL more reads miss. Let the misses go to a read replica instead of the primary."
+    ],
+    "act": 4,
+    "seed": 1043,
+    "walkthrough": {
+      "steps": [
+        "Select the cache and set the TTL to 30 seconds, so nothing shown is more than a minute old.",
+        "Add a read replica (db.r6g.large), and connect the orders database to it.",
+        "Connect the cache to the replica instead of the primary, so cache misses go to the replica.",
+        "Keep the fleet’s connection to the primary for orders. Run the day."
+      ],
+      "why": "A 30-second TTL keeps data fresh but drops the hit ratio to about 57%, so many more reads miss. Sending misses to a large replica keeps the primary free for orders. Freshness costs a bigger replica: that is the trade-off this level teaches."
+    }
+  },
+  {
+    "id": "4-4",
+    "index": 4,
+    "title": "Replication Lag",
+    "from": "Priya, NimbusCart operations",
+    "brief": "New feature: the order-tracking page shows each order's status, and it must never be more than 5 seconds behind. No caching for this one. Our read replicas sometimes fall behind when the primary is busy, so be careful.",
+    "lesson": "Replicas copy changes asynchronously, and they fall further behind when the primary is busy. Keep the primary comfortably loaded, or lag grows. Caches are out when data must be seconds fresh.",
+    "budget": 760,
+    "traffic": {
+      "peakRps": 1000,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.4,
+        "read": 0.45,
+        "write": 0.15
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "maxStaleness",
+        "maxSec": 5
+      },
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "c7g.large",
+            "min": 2,
+            "max": 8,
+            "targetUtilization": 0.6,
+            "azs": 2,
+            "securityGroup": "web-only",
+            "alarms": true
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.t3.medium",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        },
+        {
+          "id": "rr1",
+          "kind": "rds_replica",
+          "x": 1060,
+          "y": 180,
+          "config": {
+            "size": "db.r6g.large",
+            "az": "b"
+          },
+          "label": "Read replica"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        },
+        {
+          "id": "db-rr1",
+          "from": "db",
+          "to": "rr1"
+        },
+        {
+          "id": "fleet-rr1",
+          "from": "fleet",
+          "to": "rr1"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": [
+      "Watch the primary’s load: lag grows quickly once it passes about 60%.",
+      "Orders hit the primary hard here. A bigger primary keeps lag down."
+    ],
+    "act": 4,
+    "seed": 1044,
+    "walkthrough": {
+      "steps": [
+        "Don’t add a cache: even 30 seconds is too stale for this page.",
+        "Select the orders database and make it a db.r6g.large.",
+        "Keep the db.r6g.large replica and the connections as they are.",
+        "Run the day and check that staleness stays around 1 second."
+      ],
+      "why": "Replication lag grows when the primary is busy, because it falls behind sending changes. Orders are heavy here, so a db.t3.medium primary runs hot and the replica lags 20+ seconds. A larger primary stays at about 40% load, and lag stays near 1 second."
+    }
+  },
+  {
+    "id": "4-5",
+    "index": 5,
+    "boss": true,
+    "title": "Boss: Black Friday with a Cold Cache",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "Black Friday. The sale opens at 9:00 and we deploy the new homepage at exactly the same moment, which empties every cache. Expect four times normal traffic hitting a cold cache. Product data can be up to 5 minutes old. Do not let the database melt.",
+    "lesson": "A cold cache sends every read to the database at once (a stampede). Size the database tier for misses during warm-up, not just for steady-state hit ratios, and put replicas behind the cache.",
+    "budget": 980,
+    "traffic": {
+      "peakRps": 800,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.42,
+        "write": 0.08
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "sale",
+        "type": "traffic_spike",
+        "atMinute": 540,
+        "multiplier": 4,
+        "rampMinutes": 5,
+        "holdMinutes": 120,
+        "warning": true,
+        "title": "Black Friday sale opens",
+        "lesson": "Known events deserve preparation: extra capacity and pre-warmed caches before the doors open."
+      },
+      {
+        "id": "flush",
+        "type": "cache_flush",
+        "atMinute": 540,
+        "warning": true,
+        "title": "Homepage deploy empties the cache",
+        "lesson": "Deploys and restarts empty caches. Plan for a cold cache at the worst moment."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.99
+      },
+      {
+        "type": "p95",
+        "maxMs": 300
+      },
+      {
+        "type": "maxStaleness",
+        "maxSec": 300
+      },
+      {
+        "type": "noSecurityIssues"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 1,
+      "operations": 0.5,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "During the warm-up nearly every read misses. Put two replicas behind the cache to absorb it.",
+      "Give the fleet headroom: a lower target and a higher maximum."
+    ],
+    "act": 4,
+    "seed": 1045,
+    "walkthrough": {
+      "steps": [
+        "Build CloudFront → S3 for images (1-day cache).",
+        "Add an ALB and an Auto Scaling Group: c7g.large, min 2, max 14, target 50%, two AZs, alarms on.",
+        "Add a db.r6g.large orders database, plus two db.r6g.large read replicas connected from it.",
+        "Add ElastiCache (TTL 5 minutes). Connect fleet → cache → both replicas, and fleet → database for orders.",
+        "Run the day and watch 9:00: the cache is empty just as traffic quadruples."
+      ],
+      "why": "For the first 20 minutes after the flush nearly every read misses the cache. Two large replicas behind the cache absorb that stampede. The fleet’s 50% target leaves headroom while new instances boot. After warm-up the cache takes most reads again, and staleness stays within 5 minutes."
+    }
+  }
+]

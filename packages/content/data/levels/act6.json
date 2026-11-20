@@ -1,0 +1,626 @@
+[
+  {
+    "id": "6-1",
+    "index": 1,
+    "title": "Your First Serverless API",
+    "from": "Kenji, mobile team lead",
+    "brief": "We're launching the NimbusCart mobile app with a small API: browse products and place orders. Traffic is tiny for now and very uneven. Our budget is small, and I never want to be paged about a server again. No servers, please.",
+    "lesson": "API Gateway, Lambda and DynamoDB together make an API with no servers at all. You pay per request, so a quiet API costs almost nothing, and everything scales by itself.",
+    "budget": 25,
+    "traffic": {
+      "peakRps": 8,
+      "curve": [
+        [0, 0.05],
+        [6, 0.08],
+        [7, 0.6],
+        [7.5, 0.15],
+        [11.5, 0.2],
+        [12, 0.9],
+        [12.5, 0.25],
+        [17, 0.3],
+        [18, 1],
+        [19, 0.4],
+        [21, 0.6],
+        [24, 0.05]
+      ],
+      "mix": {
+        "static": 0,
+        "read": 0.7,
+        "write": 0.3
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "uses",
+        "kind": "lambda"
+      },
+      {
+        "type": "uses",
+        "kind": "dynamodb"
+      },
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1,
+      "cost": 2,
+      "security": 0.5,
+      "operations": 0,
+      "sustainability": 1
+    },
+    "hints": [
+      "Customers → API Gateway → Lambda → DynamoDB.",
+      "A database server (RDS) costs money every hour, even when nobody is ordering."
+    ],
+    "act": 6,
+    "seed": 1061,
+    "walkthrough": {
+      "steps": [
+        "Add API Gateway and connect Customers to it.",
+        "Add a Lambda function (512 MB) and connect the API to it.",
+        "Add a DynamoDB table (on-demand) and connect the function to it.",
+        "Run the day."
+      ],
+      "why": "Nothing here runs by the hour: you pay per request. At 8 requests per second the whole API costs about $14 a month, and it would scale to thousands without any changes. A database server alone would cost more than that."
+    }
+  },
+  {
+    "id": "6-2",
+    "index": 2,
+    "title": "Cold Starts",
+    "from": "Kenji, mobile team lead",
+    "brief": "App reviews say the first tap after a while is slow. Traffic comes in sharp bursts at breakfast, lunch and dinner. We need 95% of requests under 130 ms, including the bursts. Someone set our functions to the smallest memory to save money.",
+    "lesson": "When traffic jumps, Lambda starts new execution environments: cold starts. More memory gives more CPU, so functions run faster and cold starts are shorter.",
+    "budget": 950,
+    "traffic": {
+      "peakRps": 500,
+      "curve": [
+        [0, 0.05],
+        [6, 0.08],
+        [7, 0.6],
+        [7.5, 0.15],
+        [11.5, 0.2],
+        [12, 0.9],
+        [12.5, 0.25],
+        [17, 0.3],
+        [18, 1],
+        [19, 0.4],
+        [21, 0.6],
+        [24, 0.05]
+      ],
+      "mix": {
+        "static": 0,
+        "read": 0.7,
+        "write": 0.3
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "p95",
+        "maxMs": 130
+      },
+      {
+        "type": "availability",
+        "min": 0.995
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "api",
+          "kind": "api_gateway",
+          "x": 280,
+          "y": 260,
+          "config": {},
+          "label": "Mobile API"
+        },
+        {
+          "id": "fn",
+          "kind": "lambda",
+          "x": 540,
+          "y": 260,
+          "config": {
+            "size": "128 MB",
+            "concurrency": 1000
+          },
+          "label": "API function"
+        },
+        {
+          "id": "table",
+          "kind": "dynamodb",
+          "x": 800,
+          "y": 260,
+          "config": {
+            "capacityMode": "on-demand",
+            "partitionKey": "order-id"
+          },
+          "label": "Orders table"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-api",
+          "from": "users",
+          "to": "api"
+        },
+        {
+          "id": "api-fn",
+          "from": "api",
+          "to": "fn"
+        },
+        {
+          "id": "fn-table",
+          "from": "fn",
+          "to": "table"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 2,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0,
+      "sustainability": 1
+    },
+    "hints": [
+      "Select the function and try a bigger memory size. Compute cost per request stays about the same, because it runs faster."
+    ],
+    "act": 6,
+    "seed": 1062,
+    "walkthrough": {
+      "steps": ["Select the API function.", "Set its memory to 2 GB.", "Run the day and compare the p95."],
+      "why": "Lambda gives CPU in proportion to memory. At 128 MB each request is slow and cold starts take 700 ms. At 2 GB requests run about four times faster and cold starts are shorter. Because you pay for memory × time and the time shrinks, the bill stays about the same."
+    }
+  },
+  {
+    "id": "6-3",
+    "index": 3,
+    "title": "Choose the Partition Key",
+    "from": "Kenji, mobile team lead",
+    "brief": "Marketing is launching a coupon on TV tonight: everyone will use code FREESHIP at once. Our orders table is keyed by coupon code, because that made the coupon report easy to write. Will it hold?",
+    "lesson": "DynamoDB spreads data across partitions by key, and each partition has a limit. A key that most requests share gets throttled. Choose keys with many distinct values.",
+    "budget": 2700,
+    "traffic": {
+      "peakRps": 800,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0,
+        "read": 0.7,
+        "write": 0.3
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "coupon",
+        "type": "hot_key",
+        "atMinute": 1140,
+        "durationMinutes": 120,
+        "warning": true,
+        "title": "FREESHIP coupon on TV",
+        "lesson": "A popular key concentrates traffic on one partition. Spread it with a better key or write sharding."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 200
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "api",
+          "kind": "api_gateway",
+          "x": 280,
+          "y": 260,
+          "config": {},
+          "label": "Mobile API"
+        },
+        {
+          "id": "fn",
+          "kind": "lambda",
+          "x": 540,
+          "y": 260,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 1000
+          },
+          "label": "API function"
+        },
+        {
+          "id": "table",
+          "kind": "dynamodb",
+          "x": 800,
+          "y": 260,
+          "config": {
+            "capacityMode": "on-demand",
+            "partitionKey": "coupon-code"
+          },
+          "label": "Orders table"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-api",
+          "from": "users",
+          "to": "api"
+        },
+        {
+          "id": "api-fn",
+          "from": "api",
+          "to": "fn"
+        },
+        {
+          "id": "fn-table",
+          "from": "fn",
+          "to": "table"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0,
+      "sustainability": 1
+    },
+    "hints": ["Select the table and look at the partition key. Order ID has millions of distinct values."],
+    "act": 6,
+    "seed": 1063,
+    "walkthrough": {
+      "steps": [
+        "Select the orders table.",
+        "Change the partition key from coupon code to order ID.",
+        "Run the day and watch the TV advert at 19:00."
+      ],
+      "why": "Each DynamoDB partition can only take so much traffic. With the coupon code as key, most orders during the advert land on one partition and are throttled. Order IDs are all different, so the same traffic spreads evenly and nothing is throttled."
+    }
+  },
+  {
+    "id": "6-4",
+    "index": 4,
+    "title": "The Connection Storm",
+    "from": "Kenji, mobile team lead",
+    "brief": "Finance insists orders stay in the existing PostgreSQL database, so our functions talk to RDS directly. At dinner the database starts refusing connections, even though its CPU is fine. Sort it out without buying a bigger database.",
+    "lesson": "Every concurrent Lambda execution opens its own database connection, and relational databases have a connection limit. RDS Proxy pools connections so thousands of executions share a few.",
+    "budget": 1700,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0,
+        "read": 0.85,
+        "write": 0.15
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 200
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "api",
+          "kind": "api_gateway",
+          "x": 280,
+          "y": 260,
+          "config": {},
+          "label": "Mobile API"
+        },
+        {
+          "id": "fn",
+          "kind": "lambda",
+          "x": 540,
+          "y": 260,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 1000
+          },
+          "label": "API function"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.r6g.large",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-api",
+          "from": "users",
+          "to": "api"
+        },
+        {
+          "id": "api-fn",
+          "from": "api",
+          "to": "fn"
+        },
+        {
+          "id": "fn-db",
+          "from": "fn",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0,
+      "sustainability": 1
+    },
+    "hints": [
+      "Look at the event log: the database ran out of connections, not CPU.",
+      "Put RDS Proxy between the function and the database."
+    ],
+    "act": 6,
+    "seed": 1064,
+    "walkthrough": {
+      "steps": [
+        "Run once and read the event log: the database ran out of connections, not CPU.",
+        "Add RDS Proxy.",
+        "Connect the function to the proxy and the proxy to the database. Delete the direct function → database connection.",
+        "Run the day."
+      ],
+      "why": "At dinner about 215 executions run at once, each wanting its own connection, but the database allows 160. RDS Proxy keeps 50 connections open and shares them between all executions, so the same database handles everyone for $22 a month more."
+    }
+  },
+  {
+    "id": "6-5",
+    "index": 5,
+    "boss": true,
+    "title": "Boss: The Viral Coupon",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "A celebrity just shared a NimbusCart coupon with millions of followers. Traffic to the app will jump five-fold tonight, and almost everyone will use the same code. The coupon report needs the code in the key, so we can't drop it. Build the mobile API from scratch to survive it.",
+    "lesson": "Serverless scales, but every part still has a limit: concurrency, partitions and connections. Write sharding spreads a hot key, and on-demand capacity absorbs spikes.",
+    "budget": 2700,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0,
+        "read": 0.7,
+        "write": 0.3
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "spike",
+        "type": "traffic_spike",
+        "atMinute": 1140,
+        "multiplier": 5,
+        "rampMinutes": 4,
+        "holdMinutes": 60,
+        "warning": false,
+        "title": "Celebrity post",
+        "lesson": "Lambda and on-demand DynamoDB absorb sudden spikes without warm-up."
+      },
+      {
+        "id": "coupon",
+        "type": "hot_key",
+        "atMinute": 1140,
+        "durationMinutes": 90,
+        "warning": false,
+        "title": "Everyone uses the same coupon",
+        "lesson": "Write sharding (code#1 to code#10) spreads one hot key over many partitions."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.99
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      },
+      {
+        "type": "uses",
+        "kind": "dynamodb"
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "The coupon code must stay in the key: shard it with a suffix.",
+      "Check the function’s concurrency limit against five times the normal peak."
+    ],
+    "act": 6,
+    "seed": 1065,
+    "walkthrough": {
+      "steps": [
+        "Build Customers → API Gateway → Lambda (1 GB, concurrency 1000) → DynamoDB (on-demand).",
+        "Set the table’s partition key to coupon code with a shard suffix (write sharding).",
+        "Run the day and watch 19:00."
+      ],
+      "why": "Traffic quintuples and 70% of orders use the same coupon. Write sharding appends a suffix (#1 to #10) so that one code is spread over ten partitions, and the coupon report can still find it. Lambda and on-demand DynamoDB absorb the spike instantly, with no instances to boot."
+    }
+  }
+]

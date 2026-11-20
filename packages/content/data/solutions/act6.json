@@ -1,0 +1,317 @@
+{
+  "6-1": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "order-id"
+        },
+        "label": "Orders table"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      }
+    ]
+  },
+  "6-2": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "2048 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "order-id"
+        },
+        "label": "Orders table"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      }
+    ]
+  },
+  "6-3": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "order-id"
+        },
+        "label": "Orders table"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      }
+    ]
+  },
+  "6-4": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "proxy",
+        "kind": "rds_proxy",
+        "x": 700,
+        "y": 380,
+        "config": {},
+        "label": "RDS Proxy"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.r6g.large",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-proxy",
+        "from": "fn",
+        "to": "proxy"
+      },
+      {
+        "id": "proxy-db",
+        "from": "proxy",
+        "to": "db"
+      }
+    ]
+  },
+  "6-5": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "1024 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "coupon-code-sharded"
+        },
+        "label": "Orders table"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      }
+    ]
+  }
+}

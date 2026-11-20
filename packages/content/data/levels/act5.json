@@ -1,0 +1,803 @@
+[
+  {
+    "id": "5-1",
+    "index": 1,
+    "title": "A Database With a Standby",
+    "from": "Daniel, enterprise customer",
+    "brief": "We're signing a contract that requires 99.9% availability. Our auditors found that your database is a single machine: if it dies, everything stops for twenty minutes. Fix that before Monday. We're told it will be tested.",
+    "lesson": "RDS Multi-AZ keeps a synchronous standby in a second Availability Zone. If the primary fails, the standby takes over in about a minute, with no data lost.",
+    "budget": 690,
+    "traffic": {
+      "peakRps": 800,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.4,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "dbfail",
+        "type": "db_failover",
+        "atMinute": 1140,
+        "warning": true,
+        "title": "Primary database failure",
+        "lesson": "Hardware fails. A standby in another zone turns a 20-minute outage into a one-minute blip."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.999
+      },
+      {
+        "type": "config",
+        "check": "multiAzDatabase"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "c7g.large",
+            "min": 2,
+            "max": 8,
+            "targetUtilization": 0.6,
+            "azs": 2,
+            "securityGroup": "web-only",
+            "alarms": true
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.r6g.large",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 1,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Select the database and turn on Multi-AZ. It doubles the database cost: that is the price of the standby."
+    ],
+    "act": 5,
+    "seed": 1051,
+    "walkthrough": {
+      "steps": [
+        "Select the orders database.",
+        "Turn on Multi-AZ.",
+        "Run the day and watch the 19:00 failure."
+      ],
+      "why": "With a standby in another zone, a primary failure means about a minute of failover instead of twenty minutes of recovery. That is the difference between 98.7% and 99.9% availability. It doubles the database bill, the price of the standby."
+    }
+  },
+  {
+    "id": "5-2",
+    "index": 2,
+    "title": "Stateless Servers",
+    "from": "Priya, NimbusCart operations",
+    "brief": "Every time a server is replaced, hundreds of customers are logged out and lose their baskets. Support is drowning in complaints. A server is going to crash this evening. Make sure nobody notices.",
+    "lesson": "Sessions kept in a server’s memory vanish with the server. Store them in ElastiCache so any server can serve any customer and servers become disposable.",
+    "budget": 710,
+    "traffic": {
+      "peakRps": 800,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.4,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "crash",
+        "type": "instance_crash",
+        "atMinute": 1150,
+        "warning": true,
+        "title": "Server crash at dinner",
+        "lesson": "Stateless servers can be replaced at any moment without anyone noticing."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "noSessionLoss"
+      },
+      {
+        "type": "config",
+        "check": "sharedSessions"
+      },
+      {
+        "type": "availability",
+        "min": 0.999
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "c7g.large",
+            "min": 2,
+            "max": 8,
+            "targetUtilization": 0.6,
+            "azs": 2,
+            "securityGroup": "web-only",
+            "alarms": true
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.r6g.large",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a",
+            "multiAz": true
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 1,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Add ElastiCache, connect the fleet to it, then set the fleet’s session storage to the cache.",
+      "Connect the cache to the database too, so it can also cache reads."
+    ],
+    "act": 5,
+    "seed": 1052,
+    "walkthrough": {
+      "steps": [
+        "Add ElastiCache.",
+        "Connect the fleet to the cache, and the cache to the orders database.",
+        "Select the fleet and set session storage to the cache.",
+        "Run the day and watch the crash at dinner: nobody is logged out."
+      ],
+      "why": "Sessions now live in ElastiCache, not on the instances. When one crashes, the load balancer sends its customers to other instances, which find their sessions in the cache. The cache also takes some reads off the database."
+    }
+  },
+  {
+    "id": "5-3",
+    "index": 3,
+    "title": "Multi-AZ Is Not a Backup",
+    "from": "Priya, NimbusCart operations",
+    "brief": "An engineer is about to run a cleanup script on production this afternoon, and honestly, I'm nervous. Someone switched off backups to save money because 'we have Multi-AZ now'. If the worst happens, we can lose at most five minutes of orders.",
+    "lesson": "Multi-AZ copies every change to the standby instantly, including mistakes. Only backups with point-in-time restore can bring back a dropped table, losing at most about five minutes.",
+    "budget": 690,
+    "traffic": {
+      "peakRps": 800,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.4,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "drop",
+        "type": "data_corruption",
+        "atMinute": 900,
+        "warning": true,
+        "title": "Accidental DROP TABLE",
+        "lesson": "Replication protects against hardware failure. Backups protect against people."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "maxRpo",
+        "maxMinutes": 5
+      },
+      {
+        "type": "config",
+        "check": "backups"
+      },
+      {
+        "type": "availability",
+        "min": 0.97
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "c7g.large",
+            "min": 2,
+            "max": 8,
+            "targetUtilization": 0.6,
+            "azs": 2,
+            "securityGroup": "web-only",
+            "alarms": true
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.r6g.large",
+            "backupRetentionDays": 0,
+            "publiclyAccessible": false,
+            "az": "a",
+            "multiAz": true
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 1.5,
+      "sustainability": 0.5
+    },
+    "hints": ["Select the database and turn automated backups back on."],
+    "act": 5,
+    "seed": 1053,
+    "walkthrough": {
+      "steps": [
+        "Select the orders database.",
+        "Set automated backups to 7 days.",
+        "Leave Multi-AZ on and run the day."
+      ],
+      "why": "When the table is dropped, the standby drops it too: Multi-AZ copies mistakes instantly. Backups allow a point-in-time restore to 5 minutes before the mistake. The site is down for about 20 minutes during the restore, but at most 5 minutes of orders are lost."
+    }
+  },
+  {
+    "id": "5-4",
+    "index": 4,
+    "title": "Lose a Zone, Keep the Site",
+    "from": "Lena, cloud consultant",
+    "brief": "AWS has warned customers in our region about possible power maintenance in one Availability Zone tonight. Your fleet lives entirely in Zone A, and so does the database. Make sure losing Zone A for an hour is a non-event.",
+    "lesson": "Spread servers over two Availability Zones and give the database a Multi-AZ standby. Managed services like the load balancer, S3 and CloudFront already span zones.",
+    "budget": 700,
+    "traffic": {
+      "peakRps": 800,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.4,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "az",
+        "type": "az_outage",
+        "az": "a",
+        "durationMinutes": 60,
+        "atMinute": 1200,
+        "warning": true,
+        "title": "Zone A power failure",
+        "lesson": "Availability Zones fail independently. Two zones means half your capacity survives, so size for it."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "config",
+        "check": "multiAz"
+      },
+      {
+        "type": "config",
+        "check": "multiAzDatabase"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "c7g.large",
+            "min": 2,
+            "max": 8,
+            "targetUtilization": 0.6,
+            "azs": 1,
+            "securityGroup": "web-only",
+            "alarms": true
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.r6g.large",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 1,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Spread the fleet over two zones, and turn on Multi-AZ for the database.",
+      "When a zone fails, the other half of the fleet must carry everything. A lower target utilisation gives it room."
+    ],
+    "act": 5,
+    "seed": 1054,
+    "walkthrough": {
+      "steps": [
+        "Select the fleet and spread it over two Availability Zones.",
+        "Lower its target utilisation to 50%, so the surviving half has room for everyone.",
+        "Select the database and turn on Multi-AZ.",
+        "Run the day and watch Zone A go dark at 20:00."
+      ],
+      "why": "When Zone A fails, half the fleet survives in Zone B and the group relaunches the rest there. The database fails over to its standby in about a minute. The load balancer, S3 and CloudFront already span zones."
+    }
+  },
+  {
+    "id": "5-5",
+    "index": 5,
+    "boss": true,
+    "title": "Boss: A Zone Goes Dark at Peak",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "The enterprise contract starts today: 99.8% availability, no lost orders, nobody logged out. Something will go wrong at the busiest time of the evening; we don't know what. Build it from scratch, and build it to survive.",
+    "lesson": "High availability is many small decisions together: multiple zones with headroom, a standby database, stateless servers, health checks and alarms.",
+    "budget": 820,
+    "traffic": {
+      "peakRps": 1000,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.4,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "az",
+        "type": "az_outage",
+        "az": "a",
+        "durationMinutes": 90,
+        "atMinute": 1155,
+        "warning": false,
+        "title": "Zone A goes dark",
+        "lesson": "Losing a zone at peak is the real test of a multi-AZ design."
+      },
+      {
+        "id": "crash",
+        "type": "instance_crash",
+        "atMinute": 1200,
+        "warning": false,
+        "title": "Another server crashes",
+        "lesson": "Failures cluster under stress. Headroom is what absorbs the second hit."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.998
+      },
+      {
+        "type": "noDataLoss"
+      },
+      {
+        "type": "noSessionLoss"
+      },
+      {
+        "type": "config",
+        "check": "multiAzDatabase"
+      },
+      {
+        "type": "noSecurityIssues"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg", "rds_replica", "elasticache"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 2.5,
+      "performance": 1,
+      "cost": 1,
+      "security": 1,
+      "operations": 1,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Two zones, Multi-AZ database, sessions in ElastiCache, alarms on, and a fleet that can lose half its instances and keep going."
+    ],
+    "act": 5,
+    "seed": 1055,
+    "walkthrough": {
+      "steps": [
+        "Build CloudFront → S3 for images and an ALB in front of an Auto Scaling Group: c7g.large, min 3, max 12, target 45%, two AZs, alarms on.",
+        "Add ElastiCache and set the fleet’s session storage to the cache.",
+        "Add a db.r6g.large orders database with Multi-AZ and 7-day backups.",
+        "Connect fleet → cache → database and fleet → database. Run the day."
+      ],
+      "why": "At 19:15 Zone A disappears: half the fleet and the database primary. The standby takes over in a minute, the other half of the fleet has headroom at a 45% target, and sessions survive in ElastiCache. When another server crashes at 20:00, the group simply replaces it."
+    }
+  }
+]

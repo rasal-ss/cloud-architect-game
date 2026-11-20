@@ -529,21 +529,21 @@
         "label": "db.r6g.large (2 vCPU, 16 GiB)",
         "capacity": 800,
         "monthlyCost": 170,
-        "maxConnections": 200
+        "maxConnections": 160
       },
       {
         "id": "db.r6g.xlarge",
         "label": "db.r6g.xlarge (4 vCPU, 32 GiB)",
         "capacity": 1600,
         "monthlyCost": 340,
-        "maxConnections": 400
+        "maxConnections": 320
       },
       {
         "id": "db.r6g.2xlarge",
         "label": "db.r6g.2xlarge (8 vCPU, 64 GiB)",
         "capacity": 3200,
         "monthlyCost": 680,
-        "maxConnections": 800
+        "maxConnections": 640
       }
     ],
     "defaultSize": "db.t3.micro",
@@ -619,14 +619,14 @@
         "label": "db.r6g.large",
         "capacity": 800,
         "monthlyCost": 170,
-        "maxConnections": 200
+        "maxConnections": 160
       },
       {
         "id": "db.r6g.xlarge",
         "label": "db.r6g.xlarge",
         "capacity": 1600,
         "monthlyCost": 340,
-        "maxConnections": 400
+        "maxConnections": 320
       }
     ],
     "defaultSize": "db.t3.medium",
@@ -971,7 +971,7 @@
         "meaning": "Many client sessions sharing fewer database connections."
       }
     ],
-    "example": "NimbusCart's order Lambda scaled to 250 executions at dinner and the db.r6g.large (200-connection limit in the game) began refusing them. With RDS Proxy in between, the database sees 50 connections and every order goes through.",
+    "example": "NimbusCart's order Lambda scaled to 250 executions at dinner and the db.r6g.large (160-connection limit in the game) began refusing them. With RDS Proxy in between, the database sees 50 connections and every order goes through.",
     "mistakes": [
       "Scaling the database up just to get more connections, which is expensive.",
       "Adding a proxy in front of a few servers that already pool connections."

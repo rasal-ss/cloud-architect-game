@@ -1,0 +1,797 @@
+{
+  "7-1": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "order-id"
+        },
+        "label": "Orders table"
+      },
+      {
+        "id": "q",
+        "kind": "sqs",
+        "x": 800,
+        "y": 420,
+        "config": {
+          "dlq": true,
+          "fifo": false
+        },
+        "label": "Payments queue"
+      },
+      {
+        "id": "worker",
+        "kind": "lambda",
+        "x": 940,
+        "y": 540,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 100
+        },
+        "label": "Payment worker"
+      },
+      {
+        "id": "pay",
+        "kind": "payment",
+        "x": 1080,
+        "y": 420,
+        "config": {},
+        "label": "Payment provider",
+        "locked": true
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      },
+      {
+        "id": "fn-q",
+        "from": "fn",
+        "to": "q"
+      },
+      {
+        "id": "q-worker",
+        "from": "q",
+        "to": "worker"
+      },
+      {
+        "id": "worker-pay",
+        "from": "worker",
+        "to": "pay"
+      },
+      {
+        "id": "worker-table",
+        "from": "worker",
+        "to": "table"
+      }
+    ]
+  },
+  "7-2": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "order-id"
+        },
+        "label": "Orders table"
+      },
+      {
+        "id": "q",
+        "kind": "sqs",
+        "x": 800,
+        "y": 420,
+        "config": {
+          "dlq": true,
+          "fifo": false
+        },
+        "label": "Payments queue"
+      },
+      {
+        "id": "worker",
+        "kind": "lambda",
+        "x": 940,
+        "y": 540,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 100
+        },
+        "label": "Payment worker"
+      },
+      {
+        "id": "pay",
+        "kind": "payment",
+        "x": 1080,
+        "y": 420,
+        "config": {},
+        "label": "Payment provider",
+        "locked": true
+      },
+      {
+        "id": "topic",
+        "kind": "sns",
+        "x": 700,
+        "y": 640,
+        "config": {},
+        "label": "Order events"
+      },
+      {
+        "id": "aq",
+        "kind": "sqs",
+        "x": 860,
+        "y": 800,
+        "config": {
+          "dlq": true
+        },
+        "label": "Analytics queue"
+      },
+      {
+        "id": "email",
+        "kind": "lambda",
+        "x": 940,
+        "y": 640,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 50
+        },
+        "label": "Email receipts"
+      },
+      {
+        "id": "sms",
+        "kind": "lambda",
+        "x": 940,
+        "y": 720,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 50
+        },
+        "label": "SMS updates"
+      },
+      {
+        "id": "analytics",
+        "kind": "lambda",
+        "x": 1040,
+        "y": 800,
+        "config": {
+          "size": "128 MB",
+          "concurrency": 120
+        },
+        "label": "Analytics"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      },
+      {
+        "id": "fn-q",
+        "from": "fn",
+        "to": "q"
+      },
+      {
+        "id": "q-worker",
+        "from": "q",
+        "to": "worker"
+      },
+      {
+        "id": "worker-pay",
+        "from": "worker",
+        "to": "pay"
+      },
+      {
+        "id": "worker-table",
+        "from": "worker",
+        "to": "table"
+      },
+      {
+        "id": "fn-topic",
+        "from": "fn",
+        "to": "topic"
+      },
+      {
+        "id": "topic-email",
+        "from": "topic",
+        "to": "email"
+      },
+      {
+        "id": "topic-sms",
+        "from": "topic",
+        "to": "sms"
+      },
+      {
+        "id": "topic-aq",
+        "from": "topic",
+        "to": "aq"
+      },
+      {
+        "id": "aq-analytics",
+        "from": "aq",
+        "to": "analytics"
+      }
+    ]
+  },
+  "7-3": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "order-id"
+        },
+        "label": "Orders table"
+      },
+      {
+        "id": "q",
+        "kind": "sqs",
+        "x": 800,
+        "y": 420,
+        "config": {
+          "dlq": true,
+          "fifo": false
+        },
+        "label": "Payments queue"
+      },
+      {
+        "id": "worker",
+        "kind": "lambda",
+        "x": 940,
+        "y": 540,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 100
+        },
+        "label": "Payment worker"
+      },
+      {
+        "id": "pay",
+        "kind": "payment",
+        "x": 1080,
+        "y": 420,
+        "config": {},
+        "label": "Payment provider",
+        "locked": true
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      },
+      {
+        "id": "fn-q",
+        "from": "fn",
+        "to": "q"
+      },
+      {
+        "id": "q-worker",
+        "from": "q",
+        "to": "worker"
+      },
+      {
+        "id": "worker-pay",
+        "from": "worker",
+        "to": "pay"
+      },
+      {
+        "id": "worker-table",
+        "from": "worker",
+        "to": "table"
+      }
+    ]
+  },
+  "7-4": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "order-id"
+        },
+        "label": "Orders table"
+      },
+      {
+        "id": "q",
+        "kind": "sqs",
+        "x": 800,
+        "y": 420,
+        "config": {
+          "dlq": true,
+          "fifo": false
+        },
+        "label": "Payments queue"
+      },
+      {
+        "id": "worker",
+        "kind": "lambda",
+        "x": 940,
+        "y": 540,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 100
+        },
+        "label": "Payment worker"
+      },
+      {
+        "id": "pay",
+        "kind": "payment",
+        "x": 1080,
+        "y": 420,
+        "config": {},
+        "label": "Payment provider",
+        "locked": true
+      },
+      {
+        "id": "bus",
+        "kind": "eventbridge",
+        "x": 700,
+        "y": 640,
+        "config": {},
+        "label": "Event bus"
+      },
+      {
+        "id": "loyalty",
+        "kind": "lambda",
+        "x": 940,
+        "y": 680,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 30
+        },
+        "label": "Loyalty points"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      },
+      {
+        "id": "fn-q",
+        "from": "fn",
+        "to": "q"
+      },
+      {
+        "id": "q-worker",
+        "from": "q",
+        "to": "worker"
+      },
+      {
+        "id": "worker-pay",
+        "from": "worker",
+        "to": "pay"
+      },
+      {
+        "id": "worker-table",
+        "from": "worker",
+        "to": "table"
+      },
+      {
+        "id": "fn-bus",
+        "from": "fn",
+        "to": "bus"
+      },
+      {
+        "id": "bus-loyalty",
+        "from": "bus",
+        "to": "loyalty"
+      }
+    ]
+  },
+  "7-5": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "api",
+        "kind": "api_gateway",
+        "x": 280,
+        "y": 260,
+        "config": {},
+        "label": "Mobile API"
+      },
+      {
+        "id": "fn",
+        "kind": "lambda",
+        "x": 540,
+        "y": 260,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 1000
+        },
+        "label": "API function"
+      },
+      {
+        "id": "table",
+        "kind": "dynamodb",
+        "x": 800,
+        "y": 260,
+        "config": {
+          "capacityMode": "on-demand",
+          "partitionKey": "order-id"
+        },
+        "label": "Orders table"
+      },
+      {
+        "id": "q",
+        "kind": "sqs",
+        "x": 800,
+        "y": 420,
+        "config": {
+          "dlq": true,
+          "fifo": false
+        },
+        "label": "Payments queue"
+      },
+      {
+        "id": "worker",
+        "kind": "lambda",
+        "x": 940,
+        "y": 540,
+        "config": {
+          "size": "512 MB",
+          "concurrency": 100
+        },
+        "label": "Payment worker"
+      },
+      {
+        "id": "pay",
+        "kind": "payment",
+        "x": 1080,
+        "y": 420,
+        "config": {},
+        "label": "Payment provider",
+        "locked": true
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-api",
+        "from": "users",
+        "to": "api"
+      },
+      {
+        "id": "api-fn",
+        "from": "api",
+        "to": "fn"
+      },
+      {
+        "id": "fn-table",
+        "from": "fn",
+        "to": "table"
+      },
+      {
+        "id": "fn-q",
+        "from": "fn",
+        "to": "q"
+      },
+      {
+        "id": "q-worker",
+        "from": "q",
+        "to": "worker"
+      },
+      {
+        "id": "worker-pay",
+        "from": "worker",
+        "to": "pay"
+      },
+      {
+        "id": "worker-table",
+        "from": "worker",
+        "to": "table"
+      }
+    ]
+  }
+}

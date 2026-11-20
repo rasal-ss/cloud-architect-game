@@ -622,6 +622,12 @@ export class Simulation {
         if (db.length) steps.push(this.split(db));
         for (const h of handoffs) steps.push([{ to: h.id, frac: 1 }]);
         if (!db.length && !handoffs.length) {
+          // An event consumer (send an email, update analytics) is done once its own work is done.
+          if (node.kind === 'lambda' && this.isEventConsumer(node)) {
+            plan.terminal = 1;
+            plan.then = steps;
+            return plan;
+          }
           if (node.kind === 'lambda' || replicas.length || caches.length) return fail(); // nowhere to save it
           this.embed(plan, type);
           plan.then = steps;
@@ -669,6 +675,12 @@ export class Simulation {
         // The sender is done once the message is stored; delivery happens asynchronously.
         return type === 'write' ? { ...plan, terminal: 1 } : fail();
     }
+  }
+
+  /** A Lambda fed only by queues, topics or event buses (not by customers' requests). */
+  private isEventConsumer(node: DesignNode): boolean {
+    const parents = this.graph.parents.get(node.id) ?? [];
+    return parents.length > 0 && parents.every((p) => isAsync(p.kind));
   }
 
   /** No database connected: the server keeps its own database on local disk. */
@@ -850,7 +862,8 @@ export class Simulation {
       return;
     }
     if (node.kind === 'eventbridge') {
-      const out = arrivals + (this.busRetry.get(node.id) ?? 0);
+      // Retries go out gradually (with backoff), not all at once.
+      const out = arrivals + (this.busRetry.get(node.id) ?? 0) * 0.3;
       for (const c of consumers) addFlow(node.id, c.id, 'write', out);
       return;
     }
@@ -898,8 +911,8 @@ export class Simulation {
         this.queueMaxDelay = Math.max(this.queueMaxDelay, Math.min(q.delay, MINUTES_PER_DAY));
         continue;
       }
-      const sent =
-        c.demand.write * c.accept + (node.kind === 'eventbridge' ? (this.busRetry.get(id) ?? 0) : 0);
+      const pending = node.kind === 'eventbridge' ? (this.busRetry.get(id) ?? 0) : 0;
+      const sent = c.demand.write * c.accept + pending * 0.3;
       let failedRetryable = 0;
       for (const child of consumers) {
         const missed = sent * (1 - succOf(child.id));
@@ -908,7 +921,7 @@ export class Simulation {
         else this.lostMessages += missed * 60; // SNS gives up after a few quick retries
       }
       // EventBridge retries failed deliveries for up to 24 hours.
-      if (node.kind === 'eventbridge') this.busRetry.set(id, failedRetryable);
+      if (node.kind === 'eventbridge') this.busRetry.set(id, pending * 0.7 + failedRetryable);
     }
   }
 
@@ -1285,7 +1298,9 @@ export class Simulation {
     const spec = this.catalogue.get(n.kind);
     const d = c.demand;
     const perMinute = (perMillion: number, rps: number) => (perMillion * rps * 60) / 1e6;
-    let cost = perMinute(spec.perMillionRequests, d.static + d.read + d.write);
+    // Lambda only bills invocations that actually run; throttled ones are free.
+    const billed = n.kind === 'lambda' ? c.accept : 1;
+    let cost = perMinute(spec.perMillionRequests, (d.static + d.read + d.write) * billed);
     if (isCompute(n.kind)) cost += perMinute(SERVER_STATIC_EGRESS_PER_MILLION, d.static * c.accept);
     if (n.kind === 'lambda') {
       const gbSeconds = Math.min(c.load, c.capacity) * LAMBDA_GB_SECONDS_PER_UNIT * 60;

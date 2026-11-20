@@ -116,6 +116,45 @@ describe('fan-out', () => {
   });
 });
 
+describe('event consumers', () => {
+  it('a Lambda behind an API must store orders, but an event consumer just does its job', () => {
+    const api = run(
+      design(
+        [node('api', 'api_gateway'), node('fn', 'lambda')],
+        [
+          ['users', 'api'],
+          ['api', 'fn'],
+        ],
+      ),
+      {
+        traffic: flat(10, { static: 0, read: 0, write: 1 }),
+      },
+    );
+    expect(api.unroutable.write).toBeGreaterThan(0);
+    const consumer = run(
+      design(
+        [
+          node('api', 'api_gateway'),
+          node('fn', 'lambda'),
+          node('db', 'dynamodb'),
+          node('t', 'sns'),
+          node('email', 'lambda'),
+        ],
+        [
+          ['users', 'api'],
+          ['api', 'fn'],
+          ['fn', 'db'],
+          ['fn', 't'],
+          ['t', 'email'],
+        ],
+      ),
+      { traffic: flat(10, { static: 0, read: 0, write: 1 }) },
+    );
+    expect(consumer.lostMessages).toBe(0);
+    expect(consumer.availability).toBeGreaterThan(0.999);
+  });
+});
+
 describe('Lambda and relational databases', () => {
   const build = (proxy: boolean) =>
     design(

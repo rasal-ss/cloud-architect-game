@@ -1,0 +1,1044 @@
+[
+  {
+    "id": "7-1",
+    "index": 1,
+    "title": "Queue the Payments",
+    "from": "Priya, NimbusCart operations",
+    "brief": "Checkout is slow: the payment provider takes a quarter of a second and our function waits for it while the customer stares at a spinner. Customers should see 'Order received' in under 140 ms. Every order must still be charged by the end of the day.",
+    "lesson": "A queue lets the customer’s request finish as soon as the order is saved. A separate worker takes charges off the queue and calls the slow provider in the background.",
+    "budget": 1550,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.4,
+        "read": 0.45,
+        "write": 0.15
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "p95",
+        "maxMs": 140,
+        "requestType": "write"
+      },
+      {
+        "type": "payments",
+        "min": 0.999
+      },
+      {
+        "type": "availability",
+        "min": 0.995
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy",
+      "sqs",
+      "sns",
+      "eventbridge"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "api",
+          "kind": "api_gateway",
+          "x": 280,
+          "y": 260,
+          "config": {},
+          "label": "Mobile API"
+        },
+        {
+          "id": "fn",
+          "kind": "lambda",
+          "x": 540,
+          "y": 260,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 1000
+          },
+          "label": "API function"
+        },
+        {
+          "id": "table",
+          "kind": "dynamodb",
+          "x": 800,
+          "y": 260,
+          "config": {
+            "capacityMode": "on-demand",
+            "partitionKey": "order-id"
+          },
+          "label": "Orders table"
+        },
+        {
+          "id": "pay",
+          "kind": "payment",
+          "x": 1080,
+          "y": 420,
+          "config": {},
+          "label": "Payment provider",
+          "locked": true
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-api",
+          "from": "users",
+          "to": "api"
+        },
+        {
+          "id": "api-fn",
+          "from": "api",
+          "to": "fn"
+        },
+        {
+          "id": "fn-table",
+          "from": "fn",
+          "to": "table"
+        },
+        {
+          "id": "fn-pay",
+          "from": "fn",
+          "to": "pay"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 2,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": [
+      "Add an SQS queue. Connect the API function to the queue instead of the payment provider.",
+      "Add a worker Lambda: queue → worker → payment provider, and worker → orders table."
+    ],
+    "act": 7,
+    "seed": 1071,
+    "walkthrough": {
+      "steps": [
+        "Add an SQS queue and turn on a dead-letter queue.",
+        "Connect the API function to the queue, and delete its connection to the payment provider. It still saves the order to the table.",
+        "Add a worker Lambda. Connect queue → worker, worker → payment provider and worker → orders table.",
+        "Run the day."
+      ],
+      "why": "The customer’s request now only saves the order and queues the charge, so it finishes in about 120 ms instead of 370 ms. The worker calls the slow payment provider in the background, and every order is still charged within moments."
+    }
+  },
+  {
+    "id": "7-2",
+    "index": 2,
+    "title": "Fan Out with SNS",
+    "from": "Priya, NimbusCart operations",
+    "brief": "Three teams want to know about every order: email receipts, SMS updates and analytics. Right now the order function calls each of them one by one, and analytics is so slow that it holds everything up and can't keep up at the dinner peak. Nothing should be lost, and checkout must stay fast.",
+    "lesson": "Publish one event to an SNS topic and let every interested service subscribe. Slow subscribers should read from their own SQS queue, so they can lag behind without losing anything.",
+    "budget": 2100,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.4,
+        "read": 0.45,
+        "write": 0.15
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "uses",
+        "kind": "sns"
+      },
+      {
+        "type": "noLostMessages"
+      },
+      {
+        "type": "p95",
+        "maxMs": 140,
+        "requestType": "write"
+      },
+      {
+        "type": "payments",
+        "min": 0.999
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy",
+      "sqs",
+      "sns",
+      "eventbridge"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "api",
+          "kind": "api_gateway",
+          "x": 280,
+          "y": 260,
+          "config": {},
+          "label": "Mobile API"
+        },
+        {
+          "id": "fn",
+          "kind": "lambda",
+          "x": 540,
+          "y": 260,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 1000
+          },
+          "label": "API function"
+        },
+        {
+          "id": "table",
+          "kind": "dynamodb",
+          "x": 800,
+          "y": 260,
+          "config": {
+            "capacityMode": "on-demand",
+            "partitionKey": "order-id"
+          },
+          "label": "Orders table"
+        },
+        {
+          "id": "q",
+          "kind": "sqs",
+          "x": 800,
+          "y": 420,
+          "config": {
+            "dlq": false,
+            "fifo": false
+          },
+          "label": "Payments queue"
+        },
+        {
+          "id": "worker",
+          "kind": "lambda",
+          "x": 940,
+          "y": 540,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 100
+          },
+          "label": "Payment worker"
+        },
+        {
+          "id": "pay",
+          "kind": "payment",
+          "x": 1080,
+          "y": 420,
+          "config": {},
+          "label": "Payment provider",
+          "locked": true
+        },
+        {
+          "id": "email",
+          "kind": "lambda",
+          "x": 540,
+          "y": 560,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 50
+          },
+          "label": "Email receipts"
+        },
+        {
+          "id": "sms",
+          "kind": "lambda",
+          "x": 540,
+          "y": 680,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 50
+          },
+          "label": "SMS updates"
+        },
+        {
+          "id": "analytics",
+          "kind": "lambda",
+          "x": 540,
+          "y": 800,
+          "config": {
+            "size": "128 MB",
+            "concurrency": 120
+          },
+          "label": "Analytics"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-api",
+          "from": "users",
+          "to": "api"
+        },
+        {
+          "id": "api-fn",
+          "from": "api",
+          "to": "fn"
+        },
+        {
+          "id": "fn-table",
+          "from": "fn",
+          "to": "table"
+        },
+        {
+          "id": "fn-q",
+          "from": "fn",
+          "to": "q"
+        },
+        {
+          "id": "q-worker",
+          "from": "q",
+          "to": "worker"
+        },
+        {
+          "id": "worker-pay",
+          "from": "worker",
+          "to": "pay"
+        },
+        {
+          "id": "worker-table",
+          "from": "worker",
+          "to": "table"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": [
+      "Add an SNS topic and connect the API function to it. Subscribe email and SMS to the topic.",
+      "Analytics can’t keep up at the peak. Give it its own queue between the topic and the function, so it can catch up afterwards."
+    ],
+    "act": 7,
+    "seed": 1072,
+    "walkthrough": {
+      "steps": [
+        "Add an SNS topic and connect the API function to it.",
+        "Subscribe the email and SMS functions to the topic.",
+        "Add an SQS queue for analytics (with a dead-letter queue): topic → queue → analytics function.",
+        "Run the day."
+      ],
+      "why": "The order function publishes one event and returns. SNS fans it out to every subscriber. Analytics can’t keep up at the peak; pushed directly it would lose events, but its own queue holds them until it catches up after dinner."
+    }
+  },
+  {
+    "id": "7-3",
+    "index": 3,
+    "title": "Poison Messages",
+    "from": "Priya, NimbusCart operations",
+    "brief": "A bug in the new app version sends some malformed orders this morning. The payment worker can never process them, so they're retried forever, and the queue never empties. Make sure bad messages are set aside and everything else gets charged.",
+    "lesson": "Some messages fail every time. A dead-letter queue catches messages after a few failed attempts so they stop clogging the main queue and can be inspected later.",
+    "budget": 1550,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.4,
+        "read": 0.45,
+        "write": 0.15
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "poison",
+        "type": "poison_messages",
+        "atMinute": 540,
+        "durationMinutes": 90,
+        "fraction": 0.03,
+        "warning": true,
+        "title": "Buggy app release",
+        "lesson": "Retries fix temporary failures, not permanent ones. Give up after a few attempts and park the message."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "queueDrained"
+      },
+      {
+        "type": "config",
+        "check": "dlq"
+      },
+      {
+        "type": "payments",
+        "min": 0.95
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy",
+      "sqs",
+      "sns",
+      "eventbridge"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "api",
+          "kind": "api_gateway",
+          "x": 280,
+          "y": 260,
+          "config": {},
+          "label": "Mobile API"
+        },
+        {
+          "id": "fn",
+          "kind": "lambda",
+          "x": 540,
+          "y": 260,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 1000
+          },
+          "label": "API function"
+        },
+        {
+          "id": "table",
+          "kind": "dynamodb",
+          "x": 800,
+          "y": 260,
+          "config": {
+            "capacityMode": "on-demand",
+            "partitionKey": "order-id"
+          },
+          "label": "Orders table"
+        },
+        {
+          "id": "q",
+          "kind": "sqs",
+          "x": 800,
+          "y": 420,
+          "config": {
+            "dlq": false,
+            "fifo": false
+          },
+          "label": "Payments queue"
+        },
+        {
+          "id": "worker",
+          "kind": "lambda",
+          "x": 940,
+          "y": 540,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 100
+          },
+          "label": "Payment worker"
+        },
+        {
+          "id": "pay",
+          "kind": "payment",
+          "x": 1080,
+          "y": 420,
+          "config": {},
+          "label": "Payment provider",
+          "locked": true
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-api",
+          "from": "users",
+          "to": "api"
+        },
+        {
+          "id": "api-fn",
+          "from": "api",
+          "to": "fn"
+        },
+        {
+          "id": "fn-table",
+          "from": "fn",
+          "to": "table"
+        },
+        {
+          "id": "fn-q",
+          "from": "fn",
+          "to": "q"
+        },
+        {
+          "id": "q-worker",
+          "from": "q",
+          "to": "worker"
+        },
+        {
+          "id": "worker-pay",
+          "from": "worker",
+          "to": "pay"
+        },
+        {
+          "id": "worker-table",
+          "from": "worker",
+          "to": "table"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 1.5,
+      "sustainability": 1
+    },
+    "hints": ["Select the queue and turn on a dead-letter queue."],
+    "act": 7,
+    "seed": 1073,
+    "walkthrough": {
+      "steps": ["Select the payments queue.", "Turn on a dead-letter queue.", "Run the day."],
+      "why": "Malformed messages fail every time. Without a DLQ they are retried forever, use worker capacity, and the queue never empties. With a DLQ they are moved aside after three attempts for someone to inspect, and everything else drains."
+    }
+  },
+  {
+    "id": "7-4",
+    "index": 4,
+    "title": "Event-Driven with EventBridge",
+    "from": "Lena, cloud consultant",
+    "brief": "A new loyalty-points service needs every order, but it's run by another team and it is often overloaded. Your SNS topic drops events when it can't keep up, and points go missing. Use an event bus that keeps retrying, so no customer loses their points.",
+    "lesson": "EventBridge routes events with rules and retries failed deliveries for up to 24 hours, so a struggling consumer falls behind instead of losing events.",
+    "budget": 1800,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.4,
+        "read": 0.45,
+        "write": 0.15
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "uses",
+        "kind": "eventbridge"
+      },
+      {
+        "type": "noLostMessages"
+      },
+      {
+        "type": "payments",
+        "min": 0.999
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy",
+      "sqs",
+      "sns",
+      "eventbridge"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "api",
+          "kind": "api_gateway",
+          "x": 280,
+          "y": 260,
+          "config": {},
+          "label": "Mobile API"
+        },
+        {
+          "id": "fn",
+          "kind": "lambda",
+          "x": 540,
+          "y": 260,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 1000
+          },
+          "label": "API function"
+        },
+        {
+          "id": "table",
+          "kind": "dynamodb",
+          "x": 800,
+          "y": 260,
+          "config": {
+            "capacityMode": "on-demand",
+            "partitionKey": "order-id"
+          },
+          "label": "Orders table"
+        },
+        {
+          "id": "q",
+          "kind": "sqs",
+          "x": 800,
+          "y": 420,
+          "config": {
+            "dlq": true,
+            "fifo": false
+          },
+          "label": "Payments queue"
+        },
+        {
+          "id": "worker",
+          "kind": "lambda",
+          "x": 940,
+          "y": 540,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 100
+          },
+          "label": "Payment worker"
+        },
+        {
+          "id": "pay",
+          "kind": "payment",
+          "x": 1080,
+          "y": 420,
+          "config": {},
+          "label": "Payment provider",
+          "locked": true
+        },
+        {
+          "id": "topic",
+          "kind": "sns",
+          "x": 700,
+          "y": 640,
+          "config": {},
+          "label": "Order events"
+        },
+        {
+          "id": "loyalty",
+          "kind": "lambda",
+          "x": 940,
+          "y": 680,
+          "config": {
+            "size": "512 MB",
+            "concurrency": 30
+          },
+          "label": "Loyalty points"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-api",
+          "from": "users",
+          "to": "api"
+        },
+        {
+          "id": "api-fn",
+          "from": "api",
+          "to": "fn"
+        },
+        {
+          "id": "fn-table",
+          "from": "fn",
+          "to": "table"
+        },
+        {
+          "id": "fn-q",
+          "from": "fn",
+          "to": "q"
+        },
+        {
+          "id": "q-worker",
+          "from": "q",
+          "to": "worker"
+        },
+        {
+          "id": "worker-pay",
+          "from": "worker",
+          "to": "pay"
+        },
+        {
+          "id": "worker-table",
+          "from": "worker",
+          "to": "table"
+        },
+        {
+          "id": "fn-topic",
+          "from": "fn",
+          "to": "topic"
+        },
+        {
+          "id": "topic-loyalty",
+          "from": "topic",
+          "to": "loyalty"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 1,
+      "sustainability": 1
+    },
+    "hints": [
+      "Replace the SNS topic with an EventBridge bus between the order function and the loyalty service."
+    ],
+    "act": 7,
+    "seed": 1074,
+    "walkthrough": {
+      "steps": [
+        "Add an EventBridge bus and connect the API function to it.",
+        "Connect the bus to the loyalty function.",
+        "Delete the SNS topic.",
+        "Run the day."
+      ],
+      "why": "The loyalty service can’t keep up at dinner. SNS gives up after a few quick retries, so points were lost. EventBridge keeps retrying with backoff for up to a day, so loyalty falls behind at the peak and catches up later, and no events are lost."
+    }
+  },
+  {
+    "id": "7-5",
+    "index": 5,
+    "boss": true,
+    "title": "Boss: The Payment Provider Goes Down",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "Our payment provider just told us they have planned maintenance tonight, right in the dinner rush, and it might run long. I won't turn customers away. Every order must be accepted, every order must be charged eventually, and the queue must be empty by midnight. Build checkout from scratch.",
+    "lesson": "Decoupling turns a dependency outage into a delay. Orders are accepted and saved immediately; charges wait in a durable queue and drain once the provider returns.",
+    "budget": 2100,
+    "traffic": {
+      "peakRps": 800,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.4,
+        "read": 0.45,
+        "write": 0.15
+      },
+      "userLatencyMs": 70,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "down",
+        "type": "dependency_outage",
+        "atMinute": 1140,
+        "durationMinutes": 25,
+        "warning": false,
+        "title": "Payment provider maintenance",
+        "lesson": "A queue absorbs a dependency outage; the backlog drains when it recovers."
+      },
+      {
+        "id": "poison",
+        "type": "poison_messages",
+        "atMinute": 1200,
+        "durationMinutes": 30,
+        "fraction": 0.01,
+        "warning": false,
+        "title": "Malformed orders",
+        "lesson": "Dead-letter queues keep a few bad messages from blocking the queue."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "payments",
+        "min": 0.999
+      },
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 150,
+        "requestType": "write"
+      },
+      {
+        "type": "queueDrained"
+      }
+    ],
+    "palette": [
+      "s3",
+      "cloudfront",
+      "rds",
+      "rds_replica",
+      "elasticache",
+      "api_gateway",
+      "lambda",
+      "dynamodb",
+      "rds_proxy",
+      "sqs",
+      "sns",
+      "eventbridge"
+    ],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "pay",
+          "kind": "payment",
+          "x": 1080,
+          "y": 420,
+          "config": {},
+          "label": "Payment provider",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 1,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Save the order, queue the charge, and let a worker charge it later.",
+      "Turn on a dead-letter queue: bad messages will arrive too."
+    ],
+    "act": 7,
+    "seed": 1075,
+    "walkthrough": {
+      "steps": [
+        "Build CloudFront → S3 for images, and Customers → API Gateway → order function (Lambda).",
+        "The order function saves to a DynamoDB table and sends to an SQS queue with a dead-letter queue.",
+        "Add a worker Lambda (concurrency 100): queue → worker → payment provider, and worker → table.",
+        "Run the day and watch 19:00, when the provider goes down."
+      ],
+      "why": "Customers never wait for the payment provider, so its 25-minute outage costs nothing visible: orders are accepted, and their charges wait in the queue. When it returns, the worker drains the backlog in minutes. The dead-letter queue catches the malformed orders, so the queue is empty by midnight."
+    }
+  }
+]

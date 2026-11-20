@@ -48,9 +48,9 @@ describe('teaching content', () => {
 });
 
 describe('campaign levels', () => {
-  it('has Acts 1-3 with 5 levels each, the 5th being a boss', () => {
-    expect(acts.map((a) => a.act)).toEqual([1, 2, 3]);
-    for (const act of [1, 2, 3]) {
+  it('has Acts 1-7 with 5 levels each, the 5th being a boss', () => {
+    expect(acts.map((a) => a.act)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    for (const act of [1, 2, 3, 4, 5, 6, 7]) {
       const inAct = levels.filter((l) => l.act === act).sort((a, b) => a.index - b.index);
       expect(inAct.map((l) => l.index)).toEqual([1, 2, 3, 4, 5]);
       expect(inAct.map((l) => l.boss)).toEqual([false, false, false, false, true]);
@@ -62,9 +62,28 @@ describe('campaign levels', () => {
     for (const l of levels) expect(l.id).toBe(`${l.act}-${l.index}`);
   });
 
-  it('includes both Phase 1 chaos events', () => {
+  it('uses every kind of chaos event', () => {
     const types = new Set(levels.flatMap((l) => l.incidents.map((i) => i.type)));
-    expect(types).toEqual(new Set(['traffic_spike', 'instance_crash']));
+    expect(types).toEqual(
+      new Set([
+        'traffic_spike',
+        'instance_crash',
+        'az_outage',
+        'db_failover',
+        'dependency_outage',
+        'cache_flush',
+        'hot_key',
+        'data_corruption',
+        'poison_messages',
+      ]),
+    );
+  });
+
+  it('has a walkthrough for every level', () => {
+    for (const l of levels) {
+      expect(l.walkthrough.steps.length, l.id).toBeGreaterThanOrEqual(2);
+      expect(l.walkthrough.why.length, l.id).toBeGreaterThan(80);
+    }
   });
 
   it('every starting design has exactly one Users node', () => {
@@ -88,7 +107,8 @@ describe('reference solutions', () => {
   it('only use services unlocked in their level', () => {
     for (const l of levels) {
       for (const n of solutions[l.id]!.nodes) {
-        if (n.kind !== 'users') expect(l.palette, `${l.id} uses ${n.kind}`).toContain(n.kind);
+        // Locked nodes (customers, the payment provider) are placed by the level itself.
+        if (n.kind !== 'users' && !n.locked) expect(l.palette, `${l.id} uses ${n.kind}`).toContain(n.kind);
       }
     }
   });

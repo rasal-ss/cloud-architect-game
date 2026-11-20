@@ -64,6 +64,41 @@ describe('levels teach their lesson', () => {
     );
   });
 
+  it('4-2: keeping the replicas next to the cache goes over budget', () => {
+    const d = solution('4-2');
+    const start = level('4-2').startingDesign;
+    d.nodes.push(...start.nodes.filter((n) => n.kind === 'rds_replica'));
+    d.edges.push(...start.edges.filter((e) => e.to.startsWith('rr')));
+    expect(failed(simulate(d, level('4-2'), catalogue)).join()).toMatch(/Monthly cost/);
+  });
+
+  it('5-3: Multi-AZ alone cannot undo a dropped table', () => {
+    const r = simulate(level('5-3').startingDesign, level('5-3'), catalogue);
+    expect(r.metrics.rpoMinutes).toBe(Infinity);
+  });
+
+  it('6-4: without RDS Proxy the database runs out of connections', () => {
+    const r = simulate(level('6-4').startingDesign, level('6-4'), catalogue);
+    expect(r.metrics.connectionPeak.db!).toBeGreaterThan(1);
+  });
+
+  it('7-2: subscribing analytics straight to SNS loses events at the peak', () => {
+    const d = solution('7-2');
+    d.nodes = d.nodes.filter((n) => n.id !== 'aq');
+    d.edges = d.edges.filter((e) => e.from !== 'aq' && e.to !== 'aq');
+    d.edges.push({ id: 'topic-analytics', from: 'topic', to: 'analytics' });
+    expect(simulate(d, level('7-2'), catalogue).metrics.lostMessages).toBeGreaterThan(0);
+  });
+
+  it('7-5: charging the card inside the customer request fails during the outage', () => {
+    const d = solution('7-5');
+    d.edges = d.edges.filter((e) => e.from !== 'fn' || e.to !== 'q');
+    d.edges.push({ id: 'fn-pay', from: 'fn', to: 'pay' });
+    const r = simulate(d, level('7-5'), catalogue);
+    expect(r.passed).toBe(false);
+    expect(r.metrics.ordersCharged / r.metrics.ordersPlaced).toBeLessThan(0.999);
+  });
+
   it('3-5: a default Auto Scaling Group and a small database cannot absorb a 10x spike', () => {
     const d = solution('3-5');
     const fleet = d.nodes.find((n) => n.kind === 'asg')!;
