@@ -8,8 +8,47 @@
     "whenToUse": "Always present; connect it to the entry point of your architecture.",
     "whenNotToUse": "It cannot be removed.",
     "analogy": "The crowd at your shop's door. You don't control how many arrive or when.",
+    "overview": "Every level starts with your customers. They open the app, look at products, and place orders. Each of those actions sends a request to your architecture.\n\nTraffic is never flat. It is quiet at night, builds through the morning, peaks around lunch and again at dinner, and some levels add sudden spikes when a celebrity posts or a sale starts. Your design must cope with the busiest minute, not the average.\n\nCustomers are also some distance away from the AWS region. Each round trip across the internet adds latency, which is why serving content from places near them (CloudFront) helps so much.",
     "inGame": "Sends a full day of traffic: page views (reads), image downloads (files) and orders (writes). Traffic follows a daily curve that peaks at dinner time, and some levels add sudden spikes.",
-    "connectsTo": ["cloudfront", "alb", "ec2", "s3"],
+    "keyTerms": [
+      {
+        "term": "Request",
+        "meaning": "One action by a customer, such as opening a page or placing an order."
+      },
+      {
+        "term": "req/s",
+        "meaning": "Requests per second: how busy the site is right now."
+      },
+      {
+        "term": "Peak",
+        "meaning": "The busiest point of the day. Size for the peak, not the average."
+      },
+      {
+        "term": "Traffic mix",
+        "meaning": "How requests split between files, reads and orders. Each kind needs different components."
+      }
+    ],
+    "example": "At 19:30 NimbusCart gets 300 requests per second: 180 image downloads, 90 product page views and 30 orders. The images can be answered by CloudFront, the pages need a server and a database, and the orders must be saved safely and charged.",
+    "mistakes": [
+      "Designing for average traffic. The dinner peak can be ten times the 3 a.m. trough.",
+      "Sending every kind of request to the same place. Images, page views and orders have very different needs.",
+      "Forgetting the distance to customers: far-away users feel every extra round trip."
+    ],
+    "pairsWith": [
+      {
+        "kind": "cloudfront",
+        "why": "Answers image and file requests close to every customer."
+      },
+      {
+        "kind": "alb",
+        "why": "The front door for page views and orders handled by servers."
+      },
+      {
+        "kind": "api_gateway",
+        "why": "The front door for APIs handled by Lambda."
+      }
+    ],
+    "connectsTo": ["cloudfront", "alb", "api_gateway", "ec2", "s3"],
     "cost": {},
     "latencyMs": {}
   },
@@ -22,9 +61,63 @@
     "whenToUse": "Steady, predictable load where you want full control of the server.",
     "whenNotToUse": "Spiky traffic you cannot predict (it does not scale by itself), or serving large static files.",
     "analogy": "Renting a computer in Amazon's data centre that runs your website all day.",
+    "overview": "Amazon EC2 (Elastic Compute Cloud) gives you virtual servers, called instances. You choose the size (how much CPU and memory), the operating system and what software runs on it. It runs until you stop it, and you pay for every hour it is on, busy or not.\n\nAn instance lives in one Availability Zone. If that hardware fails, the instance goes down, and anything stored only on its disk can be lost. That is why real systems keep data in a database, keep several instances behind a load balancer, and treat each server as replaceable.\n\nInstance types follow a naming pattern: the family (t3 for burstable general purpose, c7g for compute-optimised Graviton), then the size (micro, small, medium, large, xlarge). Each step up roughly doubles the capacity and the price.",
     "inGame": "Each size can do a fixed amount of work per second. Above 80% load it slows down, and above 100% requests start failing. With no database connected, it stores orders on its own disk, and they're lost if it crashes.",
+    "keyTerms": [
+      {
+        "term": "Instance",
+        "meaning": "One virtual server."
+      },
+      {
+        "term": "Instance type",
+        "meaning": "The size and family, such as t3.micro or c7g.large. Bigger types do more work and cost more."
+      },
+      {
+        "term": "Vertical scaling",
+        "meaning": "Moving to a bigger instance. Quick, but there is always a largest size, and it is still one machine."
+      },
+      {
+        "term": "Security group",
+        "meaning": "A firewall around the instance. Open only the ports you need, such as 443 for HTTPS."
+      },
+      {
+        "term": "Elastic IP",
+        "meaning": "A fixed public IP address that stays the same when the instance restarts."
+      }
+    ],
+    "example": "NimbusCart's first version is one t3.micro running the website and its database. It handles 10 customers easily. At dinner on launch day it hits 100% CPU, pages slow to a crawl, and then requests start failing. Moving images to S3 takes most of the work off it.",
+    "mistakes": [
+      "Keeping the only copy of your data on the instance. When it dies, the data goes with it.",
+      "Leaving SSH (port 22) open to the whole internet.",
+      "Running one big instance instead of two smaller ones: one failure takes the whole site down.",
+      "Paying for a huge instance that sits at 5% load most of the day."
+    ],
+    "pairsWith": [
+      {
+        "kind": "alb",
+        "why": "Spreads traffic over several instances and skips broken ones."
+      },
+      {
+        "kind": "rds",
+        "why": "Keeps data safe off the instance."
+      },
+      {
+        "kind": "asg",
+        "why": "Adds and replaces instances automatically."
+      }
+    ],
     "docsUrl": "https://docs.aws.amazon.com/ec2/",
-    "connectsTo": ["rds", "rds_replica", "elasticache"],
+    "connectsTo": [
+      "rds",
+      "rds_proxy",
+      "rds_replica",
+      "elasticache",
+      "dynamodb",
+      "sqs",
+      "sns",
+      "eventbridge",
+      "payment"
+    ],
     "sizes": [
       {
         "id": "t3.micro",
@@ -79,9 +172,63 @@
     "whenToUse": "Traffic that changes through the day, and anywhere you need more than one server.",
     "whenNotToUse": "Sudden spikes faster than instance warm-up (about 3 minutes) unless you keep headroom.",
     "analogy": "A manager who brings in extra identical servers when the shop gets busy and sends them home when it's quiet.",
+    "overview": "An Auto Scaling Group (ASG) keeps a fleet of identical EC2 instances running. You set a minimum, a maximum and a target, such as 'keep average CPU around 60%'. When load rises past the target it launches more instances; when load falls it removes some.\n\nIt also heals the fleet. If an instance fails its health checks, the group terminates it and launches a replacement, in another Availability Zone if one zone is in trouble.\n\nScaling is not instant. A new instance needs a few minutes to boot and pass health checks. For sudden spikes you need headroom: a lower target, a higher minimum, or scheduled scaling before a known event.",
     "inGame": "Adds servers when average load passes your target and removes them when load drops. A new server takes about 3 minutes to start, so keep some headroom for sudden spikes. Crashed servers are replaced automatically. Put it behind a load balancer.",
+    "keyTerms": [
+      {
+        "term": "Horizontal scaling",
+        "meaning": "Adding more machines rather than bigger ones."
+      },
+      {
+        "term": "Min / max / desired",
+        "meaning": "The smallest and largest the fleet may get, and how many it wants right now."
+      },
+      {
+        "term": "Target tracking",
+        "meaning": "A scaling rule such as \"keep average CPU at 60%\"."
+      },
+      {
+        "term": "Warm-up",
+        "meaning": "Time a new instance needs before it can take traffic."
+      },
+      {
+        "term": "Stateless",
+        "meaning": "An instance that keeps nothing important locally, so it can be removed at any time."
+      }
+    ],
+    "example": "At night NimbusCart needs 2 servers; at dinner it needs 6. A fixed fleet of 6 wastes money for 20 hours a day. An ASG with min 2, max 8 and a 60% target follows the curve, and costs about half as much.",
+    "mistakes": [
+      "A target of 90%: there is no headroom while new instances boot, so spikes cause errors.",
+      "A maximum that is too low for the busiest moment.",
+      "Storing sessions or files on instances that the group might remove at any moment.",
+      "Spreading over only one Availability Zone."
+    ],
+    "pairsWith": [
+      {
+        "kind": "alb",
+        "why": "Sends traffic only to healthy instances in the group."
+      },
+      {
+        "kind": "elasticache",
+        "why": "Holds sessions so instances can come and go."
+      },
+      {
+        "kind": "rds",
+        "why": "Keeps data off the instances."
+      }
+    ],
     "docsUrl": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/",
-    "connectsTo": ["rds", "rds_replica", "elasticache"],
+    "connectsTo": [
+      "rds",
+      "rds_proxy",
+      "rds_replica",
+      "elasticache",
+      "dynamodb",
+      "sqs",
+      "sns",
+      "eventbridge",
+      "payment"
+    ],
     "sizes": [
       {
         "id": "t3.micro",
@@ -136,7 +283,42 @@
     "whenToUse": "Whenever more than one server handles requests.",
     "whenNotToUse": "A single tiny server on a tight budget; it has a fixed hourly cost.",
     "analogy": "A receptionist who sends each customer to the least busy desk, and skips desks that are closed.",
+    "overview": "An Application Load Balancer (ALB) is the single entry point in front of a group of servers. Customers connect to the load balancer; it picks a healthy server for each request and passes it on.\n\nIt runs in several Availability Zones at once, so it is not a single point of failure itself. With health checks on, it regularly asks each server \"are you OK?\" and stops sending traffic to any that don't answer.\n\nIt understands HTTP, so it can also route by path (/api to one group, /images to another), terminate HTTPS, and send traffic to Lambda functions or containers.",
     "inGame": "Spreads requests across your servers based on their size. With health checks on, it stops sending traffic to a dead server within a minute. Costs a fixed $18 a month plus a tiny fee per request.",
+    "keyTerms": [
+      {
+        "term": "Target group",
+        "meaning": "The set of servers (targets) the load balancer can send traffic to."
+      },
+      {
+        "term": "Health check",
+        "meaning": "A regular test request; failing targets are taken out of rotation."
+      },
+      {
+        "term": "Listener",
+        "meaning": "The port and protocol the load balancer accepts, such as HTTPS on 443."
+      },
+      {
+        "term": "Redundancy",
+        "meaning": "Having more than one of something, so one can fail without an outage."
+      }
+    ],
+    "example": "NimbusCart runs two servers behind an ALB, one in each Availability Zone. At 19:45 one crashes. Within a minute the health check fails, and every customer is sent to the surviving server. Nobody notices.",
+    "mistakes": [
+      "Turning health checks off: the load balancer keeps sending customers to a dead server.",
+      "Putting only one server behind it, which still leaves a single point of failure.",
+      "Making the remaining servers too small to carry the load when one fails."
+    ],
+    "pairsWith": [
+      {
+        "kind": "asg",
+        "why": "The group adds and replaces servers; the ALB routes to whichever are healthy."
+      },
+      {
+        "kind": "cloudfront",
+        "why": "Can sit in front for global performance and caching."
+      }
+    ],
     "docsUrl": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/",
     "connectsTo": ["ec2", "asg"],
     "capacity": 100000,
@@ -162,7 +344,46 @@
     "whenToUse": "Images, scripts and styles; users far from your region; absorbing traffic spikes.",
     "whenNotToUse": "Data that must never be stale (it is cached for the TTL).",
     "analogy": "Copies of your catalogue kept in kiosks all over the world, right next to every customer.",
+    "overview": "Amazon CloudFront is a content delivery network (CDN). It has hundreds of edge locations around the world. When a customer asks for an image, the nearest edge answers if it has a copy (a cache hit). If not (a cache miss), it fetches the file from your origin, such as an S3 bucket, keeps a copy, and serves it.\n\nThis makes pages faster for far-away customers and takes most of the work off your servers. It also protects the origin: a traffic spike on images is absorbed by the edge, not by your servers.\n\nHow long an edge keeps a copy is set by the TTL (time to live). Longer TTLs mean more hits, but changes take longer to appear.",
     "inGame": "Answers most image and file requests from a nearby edge location in milliseconds. Misses go back to S3 or your servers. A longer cache time means more hits. It can also pass page requests on to your load balancer.",
+    "keyTerms": [
+      {
+        "term": "Edge location",
+        "meaning": "A CloudFront data centre close to customers."
+      },
+      {
+        "term": "Origin",
+        "meaning": "Where the original files live, such as S3 or a load balancer."
+      },
+      {
+        "term": "Cache hit / miss",
+        "meaning": "Whether the edge already had a copy. Hits are fast and cheap."
+      },
+      {
+        "term": "TTL",
+        "meaning": "Time to live: how long a copy is kept before checking the origin again."
+      },
+      {
+        "term": "Origin Access Control (OAC)",
+        "meaning": "Lets CloudFront read a private S3 bucket so the bucket never needs to be public."
+      }
+    ],
+    "example": "A European blog sends NimbusCart readers 160 ms away from the AWS region. Product photos took 200 ms each. With CloudFront and a one-day TTL, 97% of photos come from an edge 10 ms away.",
+    "mistakes": [
+      "A very short TTL for files that rarely change: most requests miss and travel to the origin.",
+      "Leaving the S3 bucket public as well, so people can bypass CloudFront.",
+      "Caching personalised pages, so one customer sees another customer’s basket."
+    ],
+    "pairsWith": [
+      {
+        "kind": "s3",
+        "why": "The classic origin for images and static files."
+      },
+      {
+        "kind": "alb",
+        "why": "An origin for dynamic pages."
+      }
+    ],
     "docsUrl": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/",
     "connectsTo": ["s3", "alb", "ec2"],
     "capacity": 1000000,
@@ -188,7 +409,38 @@
     "whenToUse": "Images, uploads, backups and static website assets.",
     "whenNotToUse": "Dynamic pages or database queries. Do not make the bucket public; put CloudFront in front.",
     "analogy": "A bottomless, practically indestructible warehouse for files.",
+    "overview": "Amazon S3 (Simple Storage Service) stores files, called objects, in buckets. It is designed for 99.999999999% (eleven nines) durability: copies are spread across several Availability Zones automatically. There is no server to manage and no size limit to plan for.\n\nS3 is ideal for images, videos, backups, logs and the files of a static website. Serving a file from S3 costs a fraction of serving it from a server, and it scales to any number of downloads.\n\nBuckets are private by default. Making a bucket public is one of the most common causes of data leaks; the safe pattern is to keep it private and let CloudFront read it.",
     "inGame": "Serves images and other files without using any server. Connecting customers straight to S3 needs a public bucket, which counts as a security issue, so put CloudFront in front of it.",
+    "keyTerms": [
+      {
+        "term": "Bucket",
+        "meaning": "A container for objects, with a globally unique name."
+      },
+      {
+        "term": "Object",
+        "meaning": "A file plus its metadata."
+      },
+      {
+        "term": "Durability",
+        "meaning": "How unlikely it is that data is lost. S3 is designed for eleven nines."
+      },
+      {
+        "term": "Storage classes",
+        "meaning": "Cheaper tiers (Infrequent Access, Glacier) for data you rarely read."
+      }
+    ],
+    "example": "NimbusCart's server spent most of its CPU sending product photos. Moving 2,000 photos to S3 freed the server for orders and cut the bandwidth bill.",
+    "mistakes": [
+      "Making a bucket public to serve images. Use CloudFront with Origin Access Control.",
+      "Serving large files from servers instead of S3.",
+      "Keeping old files forever in the most expensive storage class."
+    ],
+    "pairsWith": [
+      {
+        "kind": "cloudfront",
+        "why": "Fast, private, global delivery of what S3 stores."
+      }
+    ],
     "docsUrl": "https://docs.aws.amazon.com/s3/",
     "connectsTo": [],
     "capacity": 5500,
@@ -210,7 +462,51 @@
     "whenToUse": "Orders, payments and anything that needs transactions.",
     "whenNotToUse": "Huge read-heavy traffic on one instance; add replicas or a cache first.",
     "analogy": "A professional records office that keeps every order safe, organised and backed up.",
-    "inGame": "Handles reads and writes; writes take more work. Data stays safe when servers crash. Turn on automated backups and keep it private, so only your servers can reach it.",
+    "overview": "Amazon RDS (Relational Database Service) runs databases such as PostgreSQL and MySQL for you. AWS handles installation, patching, backups and hardware failures; you design the tables and write the queries.\n\nRelational databases store data in tables with relationships between them, and they support transactions: a group of changes that either all happen or none do. That is exactly what orders and payments need.\n\nTwo settings matter most for reliability. Automated backups let you restore the database to any second in the last few days (point-in-time recovery). Multi-AZ keeps a synchronous standby copy in a second Availability Zone and fails over to it automatically in about a minute if the primary fails.\n\nA database can only handle so many open connections. Hundreds of servers or thousands of Lambda functions each opening their own connection can exhaust it; RDS Proxy fixes that.",
+    "inGame": "Handles reads and writes; writes take more work. Data stays safe when servers crash. Each size has a connection limit. Turn on backups (point-in-time restore), Multi-AZ (a standby that takes over in a minute) and keep it private.",
+    "keyTerms": [
+      {
+        "term": "Primary",
+        "meaning": "The database instance that accepts writes."
+      },
+      {
+        "term": "Multi-AZ",
+        "meaning": "A synchronous standby in another Availability Zone that takes over automatically."
+      },
+      {
+        "term": "Point-in-time recovery",
+        "meaning": "Restore the database to any moment in the backup window, typically losing at most 5 minutes."
+      },
+      {
+        "term": "Connection limit",
+        "meaning": "How many clients can be connected at once. Exceeding it refuses new requests."
+      },
+      {
+        "term": "Transaction",
+        "meaning": "Several changes that succeed or fail together."
+      }
+    ],
+    "example": "During NimbusCart's Friday rush the web server crashes. Because orders live in RDS, not on the server, none are lost: the server recovers in a few minutes and carries on. Later, Multi-AZ means even a database failure costs only a minute.",
+    "mistakes": [
+      "Leaving backups off, so a mistake like a dropped table is permanent.",
+      "Thinking Multi-AZ is a backup. It copies every change instantly, including mistakes.",
+      "Making the database publicly accessible.",
+      "Connecting thousands of Lambda functions directly and running out of connections."
+    ],
+    "pairsWith": [
+      {
+        "kind": "rds_replica",
+        "why": "Takes read traffic off the primary."
+      },
+      {
+        "kind": "elasticache",
+        "why": "Answers repeated reads in a millisecond."
+      },
+      {
+        "kind": "rds_proxy",
+        "why": "Pools connections from Lambda and big fleets."
+      }
+    ],
     "docsUrl": "https://docs.aws.amazon.com/rds/",
     "connectsTo": ["rds_replica"],
     "sizes": [
@@ -218,31 +514,36 @@
         "id": "db.t3.micro",
         "label": "db.t3.micro (2 vCPU burst, 1 GiB)",
         "capacity": 60,
-        "monthlyCost": 13
+        "monthlyCost": 13,
+        "maxConnections": 30
       },
       {
         "id": "db.t3.medium",
         "label": "db.t3.medium (2 vCPU burst, 4 GiB)",
         "capacity": 250,
-        "monthlyCost": 52
+        "monthlyCost": 52,
+        "maxConnections": 80
       },
       {
         "id": "db.r6g.large",
         "label": "db.r6g.large (2 vCPU, 16 GiB)",
         "capacity": 800,
-        "monthlyCost": 170
+        "monthlyCost": 170,
+        "maxConnections": 200
       },
       {
         "id": "db.r6g.xlarge",
         "label": "db.r6g.xlarge (4 vCPU, 32 GiB)",
         "capacity": 1600,
-        "monthlyCost": 340
+        "monthlyCost": 340,
+        "maxConnections": 400
       },
       {
         "id": "db.r6g.2xlarge",
         "label": "db.r6g.2xlarge (8 vCPU, 64 GiB)",
         "capacity": 3200,
-        "monthlyCost": 680
+        "monthlyCost": 680,
+        "maxConnections": 800
       }
     ],
     "defaultSize": "db.t3.micro",
@@ -264,7 +565,38 @@
     "whenToUse": "Read-heavy traffic that overloads the primary.",
     "whenNotToUse": "Reads that must see the latest write (replication lag), or any writes.",
     "analogy": "A read-only photocopy of the records office that answers questions, so the original can focus on new orders.",
-    "inGame": "Connect the primary database to the replica, and your servers to both. Servers send reads to the replica and orders to the primary. Every order is copied to the replica, which adds a little load.",
+    "overview": "A read replica is an extra copy of your RDS database that only serves reads. The primary sends every change to the replica asynchronously, so the replica is usually a fraction of a second behind (replication lag).\n\nMost applications read far more than they write: product pages, search, order history. Sending those reads to replicas frees the primary for writes, and you can add several replicas for more read capacity.\n\nBecause of replication lag, a replica can briefly return old data. That is fine for a product description, but not for \"did my payment just go through?\". Reads that must be up to date should still go to the primary.",
+    "inGame": "Connect the primary database to the replica, and your servers to both. Servers send reads to the replica and orders to the primary. Every order is copied to the replica, which adds a little load, and lag grows when the primary is busy.",
+    "keyTerms": [
+      {
+        "term": "Replication lag",
+        "meaning": "How far behind the primary a replica is, usually under a second."
+      },
+      {
+        "term": "Read/write splitting",
+        "meaning": "Sending reads to replicas and writes to the primary."
+      },
+      {
+        "term": "Eventual consistency",
+        "meaning": "The copy will match the original soon, but not necessarily right now."
+      }
+    ],
+    "example": "Product pages make up 80% of NimbusCart's database work. Two replicas take all of it, and the primary's load drops from 95% to 30%.",
+    "mistakes": [
+      "Sending writes to a replica. It is read-only, so they fail.",
+      "Reading data that must be current, such as a payment status, from a replica.",
+      "Forgetting that the replica also has to replay every write."
+    ],
+    "pairsWith": [
+      {
+        "kind": "rds",
+        "why": "The primary it copies from."
+      },
+      {
+        "kind": "elasticache",
+        "why": "Cache misses can be answered by replicas."
+      }
+    ],
     "docsUrl": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html",
     "connectsTo": [],
     "sizes": [
@@ -272,25 +604,29 @@
         "id": "db.t3.micro",
         "label": "db.t3.micro",
         "capacity": 60,
-        "monthlyCost": 13
+        "monthlyCost": 13,
+        "maxConnections": 30
       },
       {
         "id": "db.t3.medium",
         "label": "db.t3.medium",
         "capacity": 250,
-        "monthlyCost": 52
+        "monthlyCost": 52,
+        "maxConnections": 80
       },
       {
         "id": "db.r6g.large",
         "label": "db.r6g.large",
         "capacity": 800,
-        "monthlyCost": 170
+        "monthlyCost": 170,
+        "maxConnections": 200
       },
       {
         "id": "db.r6g.xlarge",
         "label": "db.r6g.xlarge",
         "capacity": 1600,
-        "monthlyCost": 340
+        "monthlyCost": 340,
+        "maxConnections": 400
       }
     ],
     "defaultSize": "db.t3.medium",
@@ -310,9 +646,52 @@
     "whenToUse": "Hot, read-heavy data such as product pages and sessions.",
     "whenNotToUse": "Data that must always be fresh; it starts empty and needs time to warm up.",
     "analogy": "A sticky note on the desk with answers to the most common questions, so nobody has to walk to the records office.",
-    "inGame": "Connect servers to the cache, and the cache to the database. Hits come back in about a millisecond; misses go to the database. It starts empty and warms up over the first 20 minutes. A longer TTL means more hits but staler data.",
+    "overview": "Amazon ElastiCache runs Redis or Memcached: databases that keep everything in memory, so they answer in about a millisecond. Applications use them as a cache in front of a slower database.\n\nThe common pattern is cache-aside: look in the cache first; on a miss, read the database and store the answer in the cache with a TTL. Popular data is then served from memory, and the database only sees misses.\n\nCaches bring two trade-offs. Data can be up to one TTL old (stale). And a cache starts empty: after a restart or a flush, every request misses at once and the database takes the full load until the cache fills up again (a cache stampede). It is also the usual place to keep user sessions, so any server can serve any customer.",
+    "inGame": "Connect servers to the cache, and the cache to the database. Hits come back in about a millisecond; misses go to the database. It starts empty and warms up over 20 minutes. A longer TTL means more hits but staler data. It can also hold sessions.",
+    "keyTerms": [
+      {
+        "term": "Cache-aside",
+        "meaning": "Check the cache, fall back to the database on a miss, then fill the cache."
+      },
+      {
+        "term": "Hit ratio",
+        "meaning": "Share of reads answered by the cache."
+      },
+      {
+        "term": "TTL",
+        "meaning": "How long an entry stays before it expires."
+      },
+      {
+        "term": "Stale data",
+        "meaning": "An answer that was right when cached but may have changed since."
+      },
+      {
+        "term": "Cache stampede",
+        "meaning": "An empty cache sending every request to the database at once."
+      }
+    ],
+    "example": "With a 5-minute TTL, 75% of NimbusCart's product reads come from ElastiCache. But stock levels must be at most 60 seconds old, so a 30-second TTL is used for them; the hit ratio drops and the database needs a replica to cope.",
+    "mistakes": [
+      "A TTL so long that customers see prices or stock that changed long ago.",
+      "Assuming the cache is always warm. Plan for a cold cache after deploys.",
+      "Keeping sessions on servers instead of in the cache."
+    ],
+    "pairsWith": [
+      {
+        "kind": "rds",
+        "why": "Where cache misses are answered."
+      },
+      {
+        "kind": "rds_replica",
+        "why": "Can answer misses instead of the primary."
+      },
+      {
+        "kind": "asg",
+        "why": "Holds sessions so instances are interchangeable."
+      }
+    ],
     "docsUrl": "https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/",
-    "connectsTo": ["rds", "rds_replica"],
+    "connectsTo": ["rds", "rds_proxy", "rds_replica", "dynamodb"],
     "sizes": [
       {
         "id": "cache.t3.micro",
@@ -333,6 +712,520 @@
     },
     "latencyMs": {
       "read": 1
+    }
+  },
+  {
+    "kind": "api_gateway",
+    "name": "Amazon API Gateway",
+    "shortName": "API Gateway",
+    "category": "networking",
+    "description": "A managed front door for APIs: receives HTTP requests and passes them to Lambda functions or other backends.",
+    "whenToUse": "Mobile and web APIs backed by Lambda; anywhere you want throttling, auth and request validation without running servers.",
+    "whenNotToUse": "Serving images and files (use CloudFront and S3) or very long-lived connections to a server fleet (an ALB is cheaper at high steady volume).",
+    "analogy": "The ticket desk at a station: checks your ticket, keeps the queue orderly, and sends you to the right platform.",
+    "overview": "Amazon API Gateway is a managed front door for APIs. It receives HTTPS requests from apps and websites and hands them to a backend, most often a Lambda function. You do not run or scale any servers for it.\n\nBesides routing, it handles the chores every API needs: authentication (for example with Cognito tokens), throttling so one client cannot overwhelm you, request validation, and usage plans for partners.\n\nYou pay per request, so it costs almost nothing when idle. At very high steady volume, a load balancer in front of servers can become cheaper.",
+    "inGame": "Receives page views and orders from customers and passes them to Lambda (or a load balancer). It can also put orders straight into an SQS queue. Costs about $1 per million requests and nothing when idle.",
+    "keyTerms": [
+      {
+        "term": "Integration",
+        "meaning": "What the gateway calls for a route, such as a Lambda function."
+      },
+      {
+        "term": "Throttling",
+        "meaning": "Limiting requests per second to protect the backend."
+      },
+      {
+        "term": "HTTP API vs REST API",
+        "meaning": "Two flavours: HTTP APIs are cheaper and simpler; REST APIs have more features."
+      }
+    ],
+    "example": "NimbusCart's new mobile team builds its API as API Gateway plus Lambda. On a quiet night the whole API costs pennies; at dinner it serves 1,000 requests per second without anyone adding servers.",
+    "mistakes": [
+      "Sending images through the API instead of CloudFront.",
+      "No throttling, so one buggy client can drive up the bill.",
+      "Forgetting that the backend behind it still has limits, such as Lambda concurrency or a database."
+    ],
+    "pairsWith": [
+      {
+        "kind": "lambda",
+        "why": "The usual backend: code that runs per request."
+      },
+      {
+        "kind": "sqs",
+        "why": "Accept an order and queue it without any code in between."
+      }
+    ],
+    "docsUrl": "https://docs.aws.amazon.com/apigateway/",
+    "connectsTo": ["lambda", "alb", "sqs"],
+    "capacity": 10000,
+    "monthlyCost": 0,
+    "perMillionRequests": 1.0,
+    "cost": {
+      "read": 0.01,
+      "write": 0.01
+    },
+    "latencyMs": {
+      "read": 6,
+      "write": 6
+    }
+  },
+  {
+    "kind": "lambda",
+    "name": "AWS Lambda",
+    "shortName": "Lambda",
+    "category": "compute",
+    "description": "Runs your code in response to requests or events, without servers. You pay only while the code runs.",
+    "whenToUse": "Spiky or unpredictable traffic, APIs, and processing messages from queues and topics.",
+    "whenNotToUse": "Talking directly to a relational database at high concurrency (use RDS Proxy), or long jobs over 15 minutes.",
+    "analogy": "Calling in a freelancer for each job: nobody sits idle, you pay per task, but the first job of the day takes a moment while they arrive.",
+    "overview": "AWS Lambda runs your code when something happens: an API request, a message in a queue, a file uploaded to S3. You upload the function; AWS runs as many copies as needed, in every Availability Zone, and you pay per request and per millisecond of run time.\n\nEach copy running at the same moment is one concurrent execution. Lambda scales by adding executions, up to a concurrency limit. Above it, extra requests are throttled.\n\nWhen Lambda needs a new execution environment it has to start it first: a cold start of a few hundred milliseconds. More memory also gives more CPU, so functions run faster and cold starts shrink. Because each execution is separate, a thousand concurrent executions can mean a thousand database connections, which is why Lambda is usually paired with DynamoDB or RDS Proxy.",
+    "inGame": "Scales instantly up to its concurrency limit and costs nothing when idle. New executions take a cold start (shorter with more memory). Every concurrent execution opens its own database connection, which can exhaust RDS unless you add RDS Proxy.",
+    "keyTerms": [
+      {
+        "term": "Function",
+        "meaning": "Your code plus its settings (memory, timeout, permissions)."
+      },
+      {
+        "term": "Concurrency",
+        "meaning": "How many executions run at the same moment."
+      },
+      {
+        "term": "Cold start",
+        "meaning": "Extra delay when Lambda must start a new execution environment."
+      },
+      {
+        "term": "Event source",
+        "meaning": "What triggers the function: API Gateway, SQS, SNS, EventBridge and more."
+      },
+      {
+        "term": "Throttling",
+        "meaning": "Requests rejected because the concurrency limit was reached."
+      }
+    ],
+    "example": "NimbusCart's mobile API runs on Lambda. At 3 a.m. it handles 5 requests per second for almost nothing. When a coupon goes viral it jumps to 2,000 per second in a minute, and Lambda scales without anyone touching it; the database behind it is what needs care.",
+    "mistakes": [
+      "Connecting many Lambda executions straight to RDS and exhausting its connections.",
+      "Using the smallest memory size to save money; it is slower and has longer cold starts.",
+      "Setting a concurrency limit lower than the peak needs.",
+      "Doing slow work (calling a payment provider) inside a customer request instead of a queue."
+    ],
+    "pairsWith": [
+      {
+        "kind": "api_gateway",
+        "why": "Turns HTTP requests into function calls."
+      },
+      {
+        "kind": "dynamodb",
+        "why": "A database that scales like Lambda and has no connection limit."
+      },
+      {
+        "kind": "rds_proxy",
+        "why": "Shares a small pool of database connections between executions."
+      },
+      {
+        "kind": "sqs",
+        "why": "Feeds work to the function at a pace it can handle."
+      }
+    ],
+    "docsUrl": "https://docs.aws.amazon.com/lambda/",
+    "connectsTo": [
+      "rds",
+      "rds_proxy",
+      "rds_replica",
+      "elasticache",
+      "dynamodb",
+      "sqs",
+      "sns",
+      "eventbridge",
+      "payment"
+    ],
+    "sizes": [
+      {
+        "id": "128 MB",
+        "label": "128 MB memory",
+        "capacity": 1,
+        "monthlyCost": 0,
+        "memoryMb": 128
+      },
+      {
+        "id": "512 MB",
+        "label": "512 MB memory",
+        "capacity": 3,
+        "monthlyCost": 0,
+        "memoryMb": 512
+      },
+      {
+        "id": "1024 MB",
+        "label": "1 GB memory",
+        "capacity": 5,
+        "monthlyCost": 0,
+        "memoryMb": 1024
+      },
+      {
+        "id": "2048 MB",
+        "label": "2 GB memory",
+        "capacity": 8,
+        "monthlyCost": 0,
+        "memoryMb": 2048
+      }
+    ],
+    "defaultSize": "512 MB",
+    "monthlyCost": 0,
+    "perMillionRequests": 0.2,
+    "cost": {
+      "static": 2,
+      "read": 1,
+      "write": 1.5
+    },
+    "latencyMs": {
+      "static": 15,
+      "read": 20,
+      "write": 30
+    }
+  },
+  {
+    "kind": "dynamodb",
+    "name": "Amazon DynamoDB",
+    "shortName": "DynamoDB",
+    "category": "database",
+    "description": "A serverless NoSQL key-value database with single-digit millisecond responses at any scale.",
+    "whenToUse": "Known access patterns at huge scale: shopping carts, sessions, orders by customer, serverless apps.",
+    "whenNotToUse": "Ad-hoc queries, joins and reports across many tables (use a relational database or a data warehouse).",
+    "analogy": "A giant wall of numbered lockers: if you know the locker number you get the contents instantly, but you can't ask \"show me every locker with a red bag\".",
+    "overview": "Amazon DynamoDB is a serverless NoSQL database. You don't choose an instance size; it stores items in tables and returns them by key in a few milliseconds, at any scale. There are no connections to manage, which makes it a natural fit for Lambda.\n\nThe price of that speed is that you must design around your access patterns. Every item has a partition key, and DynamoDB spreads data across partitions by that key. Each partition can only take so much traffic, so a key that many requests share (a hot key, like one viral coupon code) gets throttled even if the table as a whole has plenty of capacity.\n\nThere are two capacity modes. On-demand charges per request and adapts to any traffic. Provisioned capacity is cheaper for steady, predictable load, but requests above it are throttled.",
+    "inGame": "Answers reads and writes in a few milliseconds with no connection limit. A single partition key can only take about 1,000 units of work per second, so a hot key throttles requests. On-demand costs per request; provisioned costs per unit per month.",
+    "keyTerms": [
+      {
+        "term": "Item",
+        "meaning": "One record, like a row, identified by its key."
+      },
+      {
+        "term": "Partition key",
+        "meaning": "The attribute DynamoDB uses to spread items across partitions."
+      },
+      {
+        "term": "Hot partition",
+        "meaning": "One key getting far more traffic than the rest, so it is throttled."
+      },
+      {
+        "term": "Write sharding",
+        "meaning": "Adding a random suffix to a hot key so its traffic spreads over many partitions."
+      },
+      {
+        "term": "On-demand vs provisioned",
+        "meaning": "Pay per request, or pay for a fixed capacity per month."
+      }
+    ],
+    "example": "NimbusCart stores coupon redemptions keyed by coupon code. A celebrity shares code FREESHIP and 70% of all orders use it. That one key is throttled while the rest of the table is idle. Keying by order ID, or sharding the coupon key as FREESHIP#1..#10, spreads the load.",
+    "mistakes": [
+      "Choosing a partition key with few distinct values, such as a date or a coupon code.",
+      "Designing tables like a relational database and needing joins later.",
+      "Provisioned capacity for spiky traffic, so peaks are throttled."
+    ],
+    "pairsWith": [
+      {
+        "kind": "lambda",
+        "why": "Both scale instantly and neither needs connections."
+      },
+      {
+        "kind": "api_gateway",
+        "why": "Part of the classic fully serverless API."
+      }
+    ],
+    "docsUrl": "https://docs.aws.amazon.com/dynamodb/",
+    "connectsTo": [],
+    "capacity": 40000,
+    "monthlyCost": 1,
+    "perMillionRequests": 0,
+    "cost": {
+      "read": 1,
+      "write": 1
+    },
+    "latencyMs": {
+      "read": 4,
+      "write": 6
+    }
+  },
+  {
+    "kind": "rds_proxy",
+    "name": "Amazon RDS Proxy",
+    "shortName": "RDS Proxy",
+    "category": "database",
+    "description": "A managed connection pool that sits between your code and a relational database.",
+    "whenToUse": "Lambda functions or large fleets that would otherwise open thousands of database connections.",
+    "whenNotToUse": "A handful of servers with their own connection pools; it adds cost and a millisecond or two.",
+    "analogy": "A switchboard operator: a hundred callers share ten phone lines, so the office never runs out of lines.",
+    "overview": "Opening a database connection is slow and each connection uses memory on the database server, so every relational database has a connection limit. Long-running servers solve this with a connection pool: they open a few connections and reuse them.\n\nLambda can't do that well. Each concurrent execution is separate, so a burst to a thousand executions can try to open a thousand connections and knock the database over.\n\nRDS Proxy is a managed connection pool in the middle. Your functions connect to the proxy; the proxy keeps a small, steady set of connections to the database and shares them. It also makes failovers faster, because it holds client connections while the standby takes over.",
+    "inGame": "Sits between Lambda (or servers) and RDS. However many clients connect, the database only sees about 50 connections. Costs about $22 a month and adds a couple of milliseconds.",
+    "keyTerms": [
+      {
+        "term": "Connection pool",
+        "meaning": "A set of open connections that many requests take turns using."
+      },
+      {
+        "term": "Connection storm",
+        "meaning": "A sudden flood of new connections, often from Lambda scaling up."
+      },
+      {
+        "term": "Multiplexing",
+        "meaning": "Many client sessions sharing fewer database connections."
+      }
+    ],
+    "example": "NimbusCart's order Lambda scaled to 250 executions at dinner and the db.r6g.large (200-connection limit in the game) began refusing them. With RDS Proxy in between, the database sees 50 connections and every order goes through.",
+    "mistakes": [
+      "Scaling the database up just to get more connections, which is expensive.",
+      "Adding a proxy in front of a few servers that already pool connections."
+    ],
+    "pairsWith": [
+      {
+        "kind": "lambda",
+        "why": "The client that most needs pooling."
+      },
+      {
+        "kind": "rds",
+        "why": "The database it protects."
+      }
+    ],
+    "docsUrl": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/rds-proxy.html",
+    "connectsTo": ["rds"],
+    "capacity": 20000,
+    "monthlyCost": 22,
+    "perMillionRequests": 0,
+    "cost": {
+      "read": 0.01,
+      "write": 0.01
+    },
+    "latencyMs": {
+      "read": 2,
+      "write": 2
+    }
+  },
+  {
+    "kind": "sqs",
+    "name": "Amazon SQS",
+    "shortName": "SQS",
+    "category": "messaging",
+    "description": "A fully managed message queue. Producers drop messages in; consumers take them out when they are ready.",
+    "whenToUse": "Decoupling slow or unreliable work (payments, emails) from the customer request, and absorbing spikes.",
+    "whenNotToUse": "When the caller needs the answer right now, or when many different services each need their own copy (use SNS or EventBridge to fan out).",
+    "analogy": "An order spike on a kitchen rail: waiters pin tickets up as fast as customers order, and cooks take the next ticket when they're ready.",
+    "overview": "Amazon SQS (Simple Queue Service) is a message queue. A producer sends a message; it waits safely in the queue until a consumer receives it, processes it, and deletes it. If the consumer fails before deleting, the message becomes visible again and is retried.\n\nQueues decouple the two sides. The customer's request finishes as soon as the order is in the queue, even if the payment provider is slow or down. The consumer works through the backlog at its own pace, so spikes are smoothed out instead of overwhelming the slow part.\n\nSome messages fail every time, for example because they are malformed: poison messages. A dead-letter queue (DLQ) catches messages that have failed several times, so they stop clogging the queue and someone can inspect them. Standard queues are nearly unlimited; FIFO queues guarantee order but handle about 300 messages per second.",
+    "inGame": "Customers' requests finish as soon as the message is queued. Consumers (Lambda or servers) drain the queue at their own capacity; failed messages are retried. Without a dead-letter queue, poison messages stay in the queue forever.",
+    "keyTerms": [
+      {
+        "term": "Producer / consumer",
+        "meaning": "The code that sends messages, and the code that processes them."
+      },
+      {
+        "term": "Backlog",
+        "meaning": "Messages waiting to be processed."
+      },
+      {
+        "term": "Visibility timeout",
+        "meaning": "How long a received message is hidden from other consumers before it is retried."
+      },
+      {
+        "term": "Dead-letter queue (DLQ)",
+        "meaning": "Where messages go after failing too many times."
+      },
+      {
+        "term": "Asynchronous",
+        "meaning": "The caller does not wait for the work to finish."
+      }
+    ],
+    "example": "The payment provider goes down for 20 minutes at dinner. Without a queue, 6,000 orders fail. With SQS, every order is accepted, 6,000 messages wait, and the worker charges them all within minutes of the provider coming back.",
+    "mistakes": [
+      "No dead-letter queue, so a few bad messages are retried forever.",
+      "Assuming each message is processed exactly once. Standard queues can deliver twice, so make processing idempotent.",
+      "Too little consumer capacity, so the backlog never empties."
+    ],
+    "pairsWith": [
+      {
+        "kind": "lambda",
+        "why": "Lambda polls the queue and scales with the backlog."
+      },
+      {
+        "kind": "sns",
+        "why": "Subscribe a queue to a topic so each consumer gets a durable copy."
+      }
+    ],
+    "docsUrl": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/",
+    "connectsTo": ["lambda", "ec2", "asg"],
+    "capacity": 30000,
+    "monthlyCost": 0,
+    "perMillionRequests": 0.4,
+    "cost": {
+      "write": 0.01
+    },
+    "latencyMs": {
+      "write": 5
+    }
+  },
+  {
+    "kind": "sns",
+    "name": "Amazon SNS",
+    "shortName": "SNS",
+    "category": "messaging",
+    "description": "Publish/subscribe messaging: one message published to a topic is pushed to every subscriber.",
+    "whenToUse": "Fan-out: one order event that email, SMS and analytics all need to hear about.",
+    "whenNotToUse": "Work that must never be lost if a subscriber is down; subscribe an SQS queue rather than a function directly.",
+    "analogy": "A school announcement over the loudspeaker: one message, every classroom hears it at once.",
+    "overview": "Amazon SNS (Simple Notification Service) is publish/subscribe messaging. A publisher sends a message to a topic, and SNS pushes a copy to every subscriber: Lambda functions, SQS queues, email, SMS, HTTP endpoints.\n\nThis is fan-out. The order service publishes \"order placed\" once and doesn't need to know who cares. Email, SMS and analytics each subscribe and react independently, and adding a new subscriber needs no change to the publisher.\n\nSNS pushes immediately and only retries a few times. If a subscriber is overloaded or broken, its messages can be lost. The robust pattern is SNS to SQS: each consumer gets its own queue, which holds messages until it is ready.",
+    "inGame": "Every subscriber gets a copy of every message. Messages pushed straight to a Lambda that is throttled or failing are lost; subscribing an SQS queue keeps them safe.",
+    "keyTerms": [
+      {
+        "term": "Topic",
+        "meaning": "A named channel that publishers send to."
+      },
+      {
+        "term": "Subscriber",
+        "meaning": "An endpoint that receives a copy of each message."
+      },
+      {
+        "term": "Fan-out",
+        "meaning": "One message delivered to many consumers."
+      },
+      {
+        "term": "Pub/sub",
+        "meaning": "Publishers and subscribers that don’t know about each other."
+      }
+    ],
+    "example": "When an order is placed, NimbusCart publishes one message to an SNS topic. Email, SMS and analytics each have a queue subscribed. When analytics is slow, its queue grows, but email and SMS are unaffected and nothing is lost.",
+    "mistakes": [
+      "Subscribing a fragile consumer directly, so its messages are dropped when it struggles.",
+      "Using SNS when one worker should process each job once; that is a queue."
+    ],
+    "pairsWith": [
+      {
+        "kind": "sqs",
+        "why": "Durable buffer per subscriber: the SNS-to-SQS fan-out pattern."
+      },
+      {
+        "kind": "lambda",
+        "why": "Reacts to each message."
+      }
+    ],
+    "docsUrl": "https://docs.aws.amazon.com/sns/",
+    "connectsTo": ["sqs", "lambda"],
+    "capacity": 30000,
+    "monthlyCost": 0,
+    "perMillionRequests": 0.5,
+    "cost": {
+      "write": 0.01
+    },
+    "latencyMs": {
+      "write": 5
+    }
+  },
+  {
+    "kind": "eventbridge",
+    "name": "Amazon EventBridge",
+    "shortName": "EventBridge",
+    "category": "messaging",
+    "description": "An event bus: services publish events, and rules route each event to the targets interested in it.",
+    "whenToUse": "Connecting many services through events with routing rules, retries and replay; integrating SaaS and AWS events.",
+    "whenNotToUse": "Very high-throughput, ultra-low-latency pipelines (use Kinesis or SNS).",
+    "analogy": "A sorting office: every parcel (event) comes in, and rules decide which departments receive it.",
+    "overview": "Amazon EventBridge is an event bus. Services publish events that describe something that happened (\"OrderPlaced\", \"PaymentFailed\"). Rules match events by their content and route them to targets such as Lambda, SQS, SNS or Step Functions.\n\nCompared with SNS, EventBridge focuses on routing and integration: content-based rules, events from AWS services and SaaS partners, a schema registry, and archive and replay so you can resend past events.\n\nFor delivery, EventBridge retries failed targets with backoff for up to 24 hours, and can send events that still fail to a dead-letter queue. It handles less throughput than SNS and adds a little latency, which rarely matters for business events.",
+    "inGame": "Delivers each event to its targets. If a target fails, EventBridge keeps retrying, so events are delayed but not lost. Costs about $1 per million events.",
+    "keyTerms": [
+      {
+        "term": "Event bus",
+        "meaning": "The channel events are published to."
+      },
+      {
+        "term": "Rule",
+        "meaning": "A pattern that matches events and sends them to targets."
+      },
+      {
+        "term": "Target",
+        "meaning": "Where matching events go, such as a Lambda function or a queue."
+      },
+      {
+        "term": "Event-driven architecture",
+        "meaning": "Services react to events instead of calling each other directly."
+      }
+    ],
+    "example": "NimbusCart publishes OrderPlaced to EventBridge. One rule sends it to the loyalty-points function, another sends high-value orders to the fraud queue. When the loyalty function has an outage, EventBridge keeps retrying and catches up afterwards.",
+    "mistakes": [
+      "Using it for very high-volume telemetry; it is built for business events.",
+      "Forgetting a DLQ for events that keep failing after the retry window."
+    ],
+    "pairsWith": [
+      {
+        "kind": "lambda",
+        "why": "A common target for events."
+      },
+      {
+        "kind": "sqs",
+        "why": "Buffers events for consumers that need to work at their own pace."
+      }
+    ],
+    "docsUrl": "https://docs.aws.amazon.com/eventbridge/",
+    "connectsTo": ["sqs", "lambda", "sns"],
+    "capacity": 10000,
+    "monthlyCost": 0,
+    "perMillionRequests": 1.0,
+    "cost": {
+      "write": 0.01
+    },
+    "latencyMs": {
+      "write": 8
+    }
+  },
+  {
+    "kind": "payment",
+    "name": "Payment provider (third-party API)",
+    "shortName": "Payments",
+    "category": "external",
+    "description": "An outside company that charges customers’ cards. You don’t run it and can’t fix it when it breaks.",
+    "whenToUse": "Every order must be charged here once.",
+    "whenNotToUse": "Calling it inside the customer’s request when it is slow or down; queue the charge instead.",
+    "analogy": "The bank's card machine at the till: you rely on it for every sale, but it belongs to someone else and sometimes it's slow or offline.",
+    "overview": "Most companies don't process card payments themselves; they call a payment provider's API. Every order must be charged exactly once.\n\nThird-party dependencies are outside your control. They have rate limits, they can be slow, and sometimes they go down. If your checkout calls the provider while the customer waits, its problems become your outage.\n\nThe resilient pattern is to accept the order, save it, and queue the charge. A worker charges orders from the queue, retrying with backoff if the provider is unavailable. Idempotency keys make sure a retried charge never bills the customer twice.",
+    "inGame": "Charges each order in about 220 ms and handles at most 400 charges per second. Some levels take it offline for a while. Orders that are never charged by midnight count against you.",
+    "keyTerms": [
+      {
+        "term": "Third-party dependency",
+        "meaning": "A service you rely on but don’t run."
+      },
+      {
+        "term": "Rate limit",
+        "meaning": "The most requests per second the provider allows."
+      },
+      {
+        "term": "Retry with backoff",
+        "meaning": "Trying again after a failure, waiting longer each time."
+      },
+      {
+        "term": "Idempotency key",
+        "meaning": "A unique ID per charge so a retry is not billed twice."
+      }
+    ],
+    "example": "At 19:00 the payment provider stops responding for 20 minutes. NimbusCart's checkout puts each charge on a queue instead of calling the provider directly, so customers still see \"Order received\", and every order is charged by 19:25.",
+    "mistakes": [
+      "Calling the provider inside the customer’s request, so its latency and outages hit customers.",
+      "Retrying without idempotency keys and charging people twice."
+    ],
+    "pairsWith": [
+      {
+        "kind": "sqs",
+        "why": "Holds charges until the provider can take them."
+      },
+      {
+        "kind": "lambda",
+        "why": "A worker that charges orders from the queue."
+      }
+    ],
+    "connectsTo": [],
+    "capacity": 400,
+    "monthlyCost": 0,
+    "perMillionRequests": 0,
+    "cost": {
+      "write": 1
+    },
+    "latencyMs": {
+      "write": 220
     }
   }
 ]

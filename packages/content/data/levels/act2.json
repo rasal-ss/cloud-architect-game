@@ -109,7 +109,15 @@
     },
     "hints": ["Try a bigger instance size for the web server, but not bigger than you need."],
     "act": 2,
-    "seed": 1021
+    "seed": 1021,
+    "walkthrough": {
+      "steps": [
+        "Select the web server.",
+        "Change its size from t3.micro to t3.small.",
+        "Run the day. Read the warning about the database living on the server: Act 2 fixes it next."
+      ],
+      "why": "The database shares the server’s CPU, so a t3.micro is overloaded at dinner. A t3.small doubles capacity for $7.60 more and stays under the $30 budget. A t3.medium would also work, but goes over budget."
+    }
   },
   {
     "id": "2-2",
@@ -241,7 +249,17 @@
       "Add an RDS database and connect the web server to it. Once the database moves out, the server needs less CPU."
     ],
     "act": 2,
-    "seed": 1022
+    "seed": 1022,
+    "walkthrough": {
+      "steps": [
+        "Add an RDS database.",
+        "Connect the web server to the database.",
+        "Set the web server back to t3.micro: without the database on it, it has plenty of room.",
+        "Leave the database at db.t3.micro with 7-day backups.",
+        "Run the day and watch the 14:00 crash: no orders are lost."
+      ],
+      "why": "Orders now live in RDS, off the server. When the server crashes it comes back in 10 minutes with nothing lost. Moving the database off also freed the server, so the smallest size is enough again."
+    }
   },
   {
     "id": "2-3",
@@ -373,7 +391,16 @@
       "Run it once and watch which component turns red. Click it to see its peak load, then size up one step at a time."
     ],
     "act": 2,
-    "seed": 1023
+    "seed": 1023,
+    "walkthrough": {
+      "steps": [
+        "Run once and see the red components: both the server and the database are overloaded at 120 req/s.",
+        "Set the web server to t3.medium.",
+        "Set the database to db.t3.medium.",
+        "Run again."
+      ],
+      "why": "At three times the traffic, the database needs about 80 units of work per second at peak and a db.t3.micro handles 60. The db.t3.medium handles 250 for $52. Anything bigger is wasted money, which costs points on cost and sustainability, and a db.r6g.large blows the budget."
+    }
   },
   {
     "id": "2-4",
@@ -510,7 +537,17 @@
     },
     "hints": ["Select the database: backup retention and public accessibility are both settings."],
     "act": 2,
-    "seed": 1024
+    "seed": 1024,
+    "walkthrough": {
+      "steps": [
+        "Select the database.",
+        "Set automated backups to 7 days.",
+        "Turn off Publicly accessible.",
+        "Select the web server and turn on CloudWatch alarms for the operations score.",
+        "Run the day."
+      ],
+      "why": "Backups enable point-in-time restore, and a private database can only be reached by your servers. Alarms cost $1 a month and lift the operational excellence score, which counts double in this level."
+    }
   },
   {
     "id": "2-5",
@@ -601,6 +638,15 @@
       "Turn on CloudWatch alarms for the server: an alarm-triggered recovery takes 3 minutes instead of 10."
     ],
     "act": 2,
-    "seed": 1025
+    "seed": 1025,
+    "walkthrough": {
+      "steps": [
+        "Build CloudFront → S3 for images, with a 1-day cache.",
+        "Add a t3.medium web server with CloudWatch alarms, and connect Customers to it.",
+        "Add a db.t3.medium RDS database with 7-day backups, kept private, and connect the server to it.",
+        "Run the day. The server crashes at 19:30, and the alarm brings it back in 3 minutes."
+      ],
+      "why": "With orders in RDS, a crash costs minutes of downtime, not data. The alarm-triggered recovery cuts the outage from 10 minutes to 3, which keeps availability above 98% even at peak."
+    }
   }
 ]

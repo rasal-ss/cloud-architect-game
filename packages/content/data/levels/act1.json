@@ -66,7 +66,16 @@
       "Drag an EC2 instance from the palette, then drag from the Customers handle to the server to connect them."
     ],
     "act": 1,
-    "seed": 1011
+    "seed": 1011,
+    "walkthrough": {
+      "steps": [
+        "Drag an EC2 instance from the palette onto the canvas.",
+        "Drag from the dot on the right of Customers to the EC2 instance to connect them.",
+        "Leave it at t3.micro, the smallest size. Three requests per second is nothing for it.",
+        "Press Run the day."
+      ],
+      "why": "Ten customers barely touch a t3.micro, so the smallest, cheapest server meets every goal. Cost carries the most weight here, and $10 a month against a $15 budget earns the bonus."
+    }
   },
   {
     "id": "1-2",
@@ -155,7 +164,16 @@
     },
     "hints": ["Click the web server and look at its security group and Elastic IP settings."],
     "act": 1,
-    "seed": 1012
+    "seed": 1012,
+    "walkthrough": {
+      "steps": [
+        "Select the web server.",
+        "Set the firewall (security group) to Web only, so only ports 80 and 443 are open.",
+        "Turn on Elastic IP so the public address stays the same after restarts.",
+        "Run the day."
+      ],
+      "why": "An open security group exposes SSH to the whole internet, and without an Elastic IP the address changes on every restart, breaking the domain. Both are one setting each, and the Elastic IP costs only $3.60 a month."
+    }
   },
   {
     "id": "1-3",
@@ -247,7 +265,16 @@
       "Connect Customers straight to an S3 bucket: image requests go to S3, page requests still go to the server."
     ],
     "act": 1,
-    "seed": 1013
+    "seed": 1013,
+    "walkthrough": {
+      "steps": [
+        "Add an S3 bucket.",
+        "Connect Customers directly to the bucket. Image requests now go to S3; page views and orders still go to the server.",
+        "Keep the web server at t3.micro.",
+        "Run the day. Notice the security warning about the public bucket: the next level fixes it."
+      ],
+      "why": "Images were 70% of requests and the most expensive work for the server. S3 serves them without any server, so the t3.micro falls from overloaded to about half busy, and the cheap design stays well under budget."
+    }
   },
   {
     "id": "1-4",
@@ -353,7 +380,17 @@
       "Every cache miss travels all the way to the bucket. Product photos rarely change: try a longer CloudFront TTL."
     ],
     "act": 1,
-    "seed": 1014
+    "seed": 1014,
+    "walkthrough": {
+      "steps": [
+        "Add CloudFront and connect Customers to it.",
+        "Connect CloudFront to the S3 bucket.",
+        "Delete the direct Customers → S3 connection (select it and press Delete), so the bucket can stay private.",
+        "Select CloudFront and set the cache time to 1 day: product photos rarely change.",
+        "Run the day."
+      ],
+      "why": "Customers 160 ms away now get photos from an edge location about 18 ms away. With a one-day cache 97% of photos are edge hits, so the 95th percentile is a hit too. The bucket is private, reachable only through CloudFront."
+    }
   },
   {
     "id": "1-5",
@@ -437,6 +474,15 @@
     },
     "hints": ["A bigger server blows the budget. What if the server never saw the image requests at all?"],
     "act": 1,
-    "seed": 1015
+    "seed": 1015,
+    "walkthrough": {
+      "steps": [
+        "Add CloudFront, connect Customers to it, and connect it to a new S3 bucket.",
+        "Set the CloudFront cache time to 1 day.",
+        "Add one EC2 instance at t3.micro and connect Customers to it for pages and orders.",
+        "Run the day and watch the 18:00 spike: CloudFront absorbs the images."
+      ],
+      "why": "The spike is mostly images. Served from the edge, they never reach the server, so a $7.60 t3.micro handles the page views and orders even at eight times normal traffic. A bigger server instead would blow the $20 budget."
+    }
   }
 ]

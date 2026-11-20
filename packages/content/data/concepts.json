@@ -3,42 +3,168 @@
     "id": "requests",
     "title": "Requests",
     "summary": "Every click a customer makes.",
-    "body": "Each page view, image download or order is a request. There are three kinds in the game. Files (images, scripts) are cheap to serve from storage. Reads (viewing a page) need a server and usually a database. Orders (writes) must be saved safely, so they need a real database."
+    "body": "Each page view, image download or order is a request. There are three kinds in the game. Files (images, scripts) are cheap to serve from storage. Reads (viewing a page) need a server and usually a database. Orders (writes) must be saved safely, and often charged, so they need a real database.\n\nDifferent kinds of request belong in different places. Sending images to the same servers that handle orders is one of the most common reasons a small site falls over.",
+    "group": "basics"
   },
   {
     "id": "load",
     "title": "Load and capacity",
     "summary": "How busy a component is.",
-    "body": "Every component can do a fixed amount of work per second: its capacity. Load is how much of that it's using. Under 80% it's green and fast. Between 80% and 100% it turns amber and slows down. Above 100% it turns red and starts dropping requests. Fix it with a bigger size, more copies, or by taking work away from it."
+    "body": "Every component can do a fixed amount of work per second: its capacity. Load is how much of that it's using.\n\nUnder 80% it's green and fast. Between 80% and 100% it turns amber and slows down, because requests start waiting for each other. Above 100% it turns red and starts dropping requests.\n\nThere are three ways to fix an overloaded component: make it bigger (vertical scaling), add more copies (horizontal scaling), or take work away from it (a cache, a CDN, a queue).",
+    "group": "basics"
   },
   {
     "id": "latency",
     "title": "Latency (p95)",
     "summary": "How long customers wait.",
-    "body": "Latency is the time a request takes, in milliseconds. The game reports p95: 95% of requests were faster than this number. It shows the slow experiences that an average would hide. Every hop between components adds a little, and overloaded components add a lot."
+    "body": "Latency is the time a request takes, in milliseconds (ms). The game reports p95: 95% of requests were faster than this number. It shows the slow experiences that an average would hide.\n\nEvery hop between components adds a little: crossing the internet to the AWS region, calling the database, calling a payment provider. Overloaded components add a lot. Serving from nearby (CloudFront), answering from memory (ElastiCache) and doing slow work later (queues) all cut latency.",
+    "group": "basics"
   },
   {
     "id": "availability",
     "title": "Availability",
     "summary": "The share of requests that worked.",
-    "body": "If 1,000 customers click and 999 succeed, availability is 99.9%. It sounds high, but 99% still means 1 in 100 customers saw an error. Crashes, overloads and broken connections all lower it."
-  },
-  {
-    "id": "spof",
-    "title": "Single point of failure",
-    "summary": "One part that takes everything down.",
-    "body": "Any component whose failure stops the whole site is a single point of failure, like a lone web server. Remove it with redundancy: two or more copies behind a load balancer, so one can fail while the others carry on."
-  },
-  {
-    "id": "availability-zones",
-    "title": "Availability Zones",
-    "summary": "Separate data centres in one region.",
-    "body": "An AWS region (say, London) is made of several Availability Zones: separate data centres with their own power and network. Spreading servers across two zones means a problem in one doesn't take you offline."
+    "body": "If 1,000 customers click and 999 succeed, availability is 99.9%. It sounds high, but 99% still means 1 in 100 customers saw an error.\n\nEach extra nine is roughly ten times harder: 99.9% allows about 43 minutes of downtime a month, 99.99% only about 4. Crashes, overloads, broken connections and slow recoveries all lower it.",
+    "group": "basics"
   },
   {
     "id": "cost",
     "title": "Cost per month",
     "summary": "What your design costs to run.",
-    "body": "Each component has a monthly price, and some also charge per request. The game shows what your design would cost if every day looked like this one. Each level has a budget. Coming in well under it scores bonus points, and going over fails the level."
+    "body": "Each component has a monthly price, and some also charge per request. Servers cost money every hour whether busy or idle; serverless services (Lambda, API Gateway, DynamoDB on-demand, SQS) cost almost nothing when idle and more per request when busy.\n\nThe game shows what your design would cost if every day looked like this one. Each level has a budget. Coming in well under it scores bonus points, and going over fails the level.",
+    "group": "basics"
+  },
+  {
+    "id": "scaling",
+    "title": "Vertical and horizontal scaling",
+    "summary": "Bigger machines, or more of them.",
+    "body": "Vertical scaling means a bigger instance: quick and simple, but there is always a largest size, and it is still one machine that can fail.\n\nHorizontal scaling means more instances behind a load balancer. It has no ceiling, survives the loss of one machine, and can follow demand with Auto Scaling, but the instances must be stateless: nothing important may live only on one of them.",
+    "group": "basics"
+  },
+  {
+    "id": "spof",
+    "title": "Single point of failure",
+    "summary": "One part that takes everything down.",
+    "body": "Any component whose failure stops the whole site is a single point of failure, like a lone web server or a database with no standby. Remove it with redundancy: two or more copies, in different Availability Zones, so one can fail while the others carry on.",
+    "group": "reliability"
+  },
+  {
+    "id": "availability-zones",
+    "title": "Availability Zones",
+    "summary": "Separate data centres in one region.",
+    "body": "An AWS region (say, London) is made of several Availability Zones: separate data centres with their own power, cooling and network, a few miles apart. They are close enough for fast, synchronous replication and far enough apart that one fire or power cut won't hit two.\n\nSpreading servers and databases across two zones means a problem in one doesn't take you offline. Managed services such as S3, DynamoDB, SQS and Lambda already run across several zones for you.",
+    "group": "reliability"
+  },
+  {
+    "id": "health-checks",
+    "title": "Health checks and alarms",
+    "summary": "Noticing failure fast.",
+    "body": "A health check is a regular test request. A load balancer uses it to stop sending traffic to a broken server within seconds. An Auto Scaling Group uses it to replace the server.\n\nCloudWatch alarms watch metrics (CPU, errors, latency) and act: notify the team, recover an instance, or scale out. Without them, customers notice problems before you do, and every minute of detection is a minute of downtime.",
+    "group": "reliability"
+  },
+  {
+    "id": "failover",
+    "title": "Failover and Multi-AZ",
+    "summary": "A standby that takes over automatically.",
+    "body": "Failover is switching to a backup when the main copy fails. RDS Multi-AZ keeps a synchronous standby database in another zone; if the primary fails, AWS points the database address at the standby within about a minute.\n\nMulti-AZ protects against hardware and zone failures, not mistakes. If someone deletes a table, the standby deletes it too. That is what backups are for.",
+    "group": "reliability"
+  },
+  {
+    "id": "rpo-rto",
+    "title": "RPO and RTO",
+    "summary": "How much data you can lose, and how long you can be down.",
+    "body": "The recovery point objective (RPO) is how much recent data you can afford to lose in a disaster, measured in time: \"at most 5 minutes of orders\". The recovery time objective (RTO) is how long recovery may take.\n\nAutomated RDS backups with point-in-time recovery give an RPO of about 5 minutes. No backups means an RPO of \"everything\". Multi-AZ shortens RTO for hardware failures but does nothing for RPO after a mistake.",
+    "group": "reliability"
+  },
+  {
+    "id": "statelessness",
+    "title": "Stateless servers and sessions",
+    "summary": "Servers that can disappear without anyone noticing.",
+    "body": "A session remembers who a customer is and what is in their basket. If it lives in a server's memory, losing or replacing that server logs the customer out and empties their basket.\n\nStateless servers keep sessions in a shared store such as ElastiCache (or DynamoDB). Then any server can serve any customer, Auto Scaling can remove servers freely, and a crash is invisible.",
+    "group": "reliability"
+  },
+  {
+    "id": "dependencies",
+    "title": "Third-party dependencies",
+    "summary": "Services you rely on but don’t control.",
+    "body": "Payment providers, email services and shipping APIs can be slow, rate-limited or down. If your customer's request waits on them, their problems become your outage.\n\nIsolate them: call them asynchronously through a queue, set timeouts, retry with backoff, and design so the customer still gets a sensible answer (\"Order received, we'll email your receipt\") when a dependency is unavailable.",
+    "group": "reliability"
+  },
+  {
+    "id": "caching",
+    "title": "Caching",
+    "summary": "Keeping copies of answers close at hand.",
+    "body": "A cache stores the answer to a question so the next person asking gets it instantly instead of recomputing or re-reading it. CloudFront caches files near customers; ElastiCache caches database answers in memory.\n\nEvery cache trades freshness for speed. The TTL sets how long an answer is kept. And a cache starts empty, so the first minutes after a restart send everything to the database.",
+    "group": "data"
+  },
+  {
+    "id": "consistency",
+    "title": "Stale data and consistency",
+    "summary": "How up to date an answer is.",
+    "body": "Strong consistency means every read sees the latest write. Eventual consistency means copies catch up shortly, so a read might briefly see older data. Caches (up to one TTL old) and read replicas (replication lag) are eventually consistent.\n\nThat is fine for product descriptions and dangerous for stock levels or payment status. Decide per kind of data how old an answer may be.",
+    "group": "data"
+  },
+  {
+    "id": "sql-nosql",
+    "title": "SQL and NoSQL",
+    "summary": "Two families of databases.",
+    "body": "Relational (SQL) databases like PostgreSQL store data in tables with relationships, support flexible queries and joins, and offer transactions. They scale up well but have connection limits and a largest size.\n\nNoSQL databases like DynamoDB store items by key. They scale almost without limit and answer in milliseconds, but you must design around known access patterns, and some keys can become hot.\n\nMany systems use both: orders and payments in SQL, carts and sessions in NoSQL (polyglot persistence).",
+    "group": "data"
+  },
+  {
+    "id": "replication",
+    "title": "Replication",
+    "summary": "Copies of the database kept in sync.",
+    "body": "Replication sends every change from a primary database to other copies. Synchronous replication (Multi-AZ) waits for the copy before confirming a write, so no data is lost on failover. Asynchronous replication (read replicas) confirms first and copies a moment later, so it is faster but the copy lags slightly.\n\nReplicas add read capacity; they never add write capacity, because every copy still has to apply every write.",
+    "group": "data"
+  },
+  {
+    "id": "connections",
+    "title": "Database connections",
+    "summary": "The phone lines into a database.",
+    "body": "Clients talk to a relational database over connections. Each one costs the database memory, so every size has a limit. Servers share a small pool of connections. Lambda functions can't, so a sudden burst of executions can open hundreds of connections at once (a connection storm) and the database starts refusing them.\n\nRDS Proxy pools connections between Lambda and the database. DynamoDB avoids the problem entirely, because it has no connections to exhaust.",
+    "group": "data"
+  },
+  {
+    "id": "partitions",
+    "title": "Partitions and hot keys",
+    "summary": "Why one popular key can slow everything.",
+    "body": "Large databases spread data across partitions by key. Each partition has its own limit. If traffic is spread over many keys, the table scales almost without limit. If one key gets most of the traffic (one viral product, one coupon code, today's date), its partition is throttled while the others sit idle.\n\nChoose keys with many distinct values, and split unavoidable hot keys by adding a suffix (write sharding).",
+    "group": "data"
+  },
+  {
+    "id": "serverless",
+    "title": "Serverless",
+    "summary": "No servers to manage, pay per use.",
+    "body": "Serverless services (Lambda, API Gateway, DynamoDB, SQS, SNS, EventBridge, S3) run without you choosing or managing servers. They scale automatically, run across Availability Zones by default, and cost little or nothing when idle.\n\nYou still have limits to design for: Lambda concurrency and cold starts, DynamoDB partition limits, and the connection limits of anything non-serverless behind them.",
+    "group": "architecture"
+  },
+  {
+    "id": "sync-async",
+    "title": "Synchronous and asynchronous",
+    "summary": "Wait for the answer, or come back later.",
+    "body": "In a synchronous call the caller waits for the result, so every step adds latency and any failure fails the whole request. In an asynchronous design the caller hands the work off (to a queue or an event bus) and gets an immediate acknowledgement; the work happens shortly afterwards.\n\nAsync is ideal for anything slow, unreliable or not needed for the customer's immediate answer: payments, emails, analytics, image processing.",
+    "group": "architecture"
+  },
+  {
+    "id": "queues",
+    "title": "Queues and backlogs",
+    "summary": "Smoothing out spikes and failures.",
+    "body": "A queue sits between a producer and a consumer. When work arrives faster than it can be processed, it waits in the backlog instead of being dropped. When a downstream service fails, messages are retried until it recovers.\n\nWatch the backlog: if consumers can never catch up, it grows forever. And add a dead-letter queue, so messages that will never succeed stop being retried.",
+    "group": "architecture"
+  },
+  {
+    "id": "pubsub",
+    "title": "Pub/sub and fan-out",
+    "summary": "One event, many listeners.",
+    "body": "In publish/subscribe, a publisher sends a message to a topic without knowing who listens, and every subscriber gets a copy. This fan-out lets you add new features (send an SMS, update analytics) without touching the code that places orders.\n\nSNS fans out messages; EventBridge routes events with rules. Put an SQS queue in front of each consumer so none of them loses messages when it is slow.",
+    "group": "architecture"
+  },
+  {
+    "id": "idempotency",
+    "title": "Retries and idempotency",
+    "summary": "Doing it twice should be the same as doing it once.",
+    "body": "Retries are how distributed systems survive temporary failures, but they mean the same message can be processed twice. An idempotent operation has the same effect however many times it runs: \"set order 42 to paid\" rather than \"add a payment\".\n\nPayment providers support idempotency keys for exactly this reason, so a retried charge never bills a customer twice.",
+    "group": "architecture"
   }
 ]

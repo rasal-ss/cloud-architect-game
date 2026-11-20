@@ -144,7 +144,16 @@
       "Place an ALB, connect Customers to it, and put two servers behind it. Each server must cope alone while the other is down."
     ],
     "act": 3,
-    "seed": 1031
+    "seed": 1031,
+    "walkthrough": {
+      "steps": [
+        "Add an Application Load Balancer and connect Customers to it. Delete the direct Customers → web server connection.",
+        "Change the existing server to t3.medium in AZ A, and add a second t3.medium in AZ B.",
+        "Connect the load balancer to both servers, and both servers to the database.",
+        "Run the day and watch the lunchtime crash."
+      ],
+      "why": "When one server dies, the load balancer’s health checks send everyone to the other within a minute. Each t3.medium can carry the full load alone (about 84% at peak), so availability stays above 99.9%, and two t3.medium cost about the same as one c7g.large."
+    }
   },
   {
     "id": "3-2",
@@ -317,7 +326,16 @@
       "Replace the fixed servers with an Auto Scaling Group behind the load balancer, and connect the group to the database."
     ],
     "act": 3,
-    "seed": 1032
+    "seed": 1032,
+    "walkthrough": {
+      "steps": [
+        "Delete the two fixed web servers.",
+        "Add an Auto Scaling Group: t3.medium, min 2, max 6, target 60%, two AZs.",
+        "Connect the load balancer to the group and the group to the database.",
+        "Run the day and watch the instance count follow the traffic curve."
+      ],
+      "why": "Traffic swings from almost nothing at night to 600 req/s at dinner. The group runs 2 small instances most of the day and grows to 4 or 5 at dinner, costing far less than enough c7g.large servers for the peak all day."
+    }
   },
   {
     "id": "3-3",
@@ -481,7 +499,11 @@
     },
     "hints": ["Select the Auto Scaling Group and spread it over two AZs."],
     "act": 3,
-    "seed": 1033
+    "seed": 1033,
+    "walkthrough": {
+      "steps": ["Select the Auto Scaling Group.", "Set Availability Zones to Two.", "Run the day."],
+      "why": "With two zones, instances are spread so a zone failure takes only half of them. The group replaces the crashed instance automatically, and the load balancer already spans both zones."
+    }
   },
   {
     "id": "3-4",
@@ -663,7 +685,15 @@
     },
     "hints": ["Check the load balancer and both servers in the inspector."],
     "act": 3,
-    "seed": 1034
+    "seed": 1034,
+    "walkthrough": {
+      "steps": [
+        "Select the load balancer and turn on health checks.",
+        "Select each web server and turn on CloudWatch alarms.",
+        "Run the day and watch the 19:45 crash."
+      ],
+      "why": "Health checks stop traffic to the dead server within a minute instead of after its 10-minute recovery. Alarms speed up recovery to 3 minutes. Together they keep availability above 99.9%, and they cost $2 a month."
+    }
   },
   {
     "id": "3-5",
@@ -766,6 +796,15 @@
       "The database cannot auto scale. Size it for ten times the normal lunch traffic."
     ],
     "act": 3,
-    "seed": 1035
+    "seed": 1035,
+    "walkthrough": {
+      "steps": [
+        "Build CloudFront → S3 for images (1-day cache): the spike is mostly images.",
+        "Add an ALB and an Auto Scaling Group: c7g.large, min 2, max 10, target 50%, two AZs, alarms on.",
+        "Add a db.r6g.xlarge database: it cannot scale during the spike, so size it for ten times lunch traffic.",
+        "Connect Customers → ALB → group → database. Run the day."
+      ],
+      "why": "Traffic jumps 10x in 3 minutes, but new instances take 3 minutes to boot. Two large instances at a 50% target already have the headroom to absorb the first wave while the group scales out, and the big database never saturates. The crash at 12:20 costs only one instance among several."
+    }
   }
 ]

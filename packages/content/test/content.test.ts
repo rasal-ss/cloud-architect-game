@@ -3,10 +3,14 @@ import { Level, acts, concepts, levels, services } from '../src';
 import { solutions } from '../src/solutions';
 
 describe('service catalogue', () => {
-  it('covers the Phase 1 services', () => {
-    expect(services.map((s) => s.kind).sort()).toEqual(
-      ['alb', 'asg', 'cloudfront', 'ec2', 'elasticache', 'rds', 'rds_replica', 's3', 'users'].sort(),
-    );
+  it('covers the core and serverless services', () => {
+    expect(services).toHaveLength(17);
+    for (const k of ['sqs', 'sns', 'eventbridge', 'lambda', 'api_gateway', 'dynamodb', 'rds_proxy']) {
+      expect(
+        services.some((s) => s.kind === k),
+        k,
+      ).toBe(true);
+    }
   });
 
   it('only allows connections to known services', () => {
@@ -23,8 +27,22 @@ describe('teaching content', () => {
     }
   });
 
+  it('gives every service an overview, key terms, an example, mistakes and real pairings', () => {
+    const kinds = new Set(services.map((s) => s.kind));
+    for (const s of services) {
+      expect(s.overview.split('\n\n').length, s.kind).toBeGreaterThanOrEqual(2);
+      expect(s.keyTerms.length, s.kind).toBeGreaterThanOrEqual(3);
+      expect(s.example.length, s.kind).toBeGreaterThan(80);
+      expect(s.mistakes.length, s.kind).toBeGreaterThanOrEqual(2);
+      for (const p of s.pairsWith) expect(kinds.has(p.kind as never), `${s.kind} -> ${p.kind}`).toBe(true);
+    }
+  });
+
   it('has the basic concepts with unique ids', () => {
-    expect(concepts.length).toBeGreaterThanOrEqual(5);
+    expect(concepts.length).toBeGreaterThanOrEqual(20);
+    expect(new Set(concepts.map((c) => c.group))).toEqual(
+      new Set(['basics', 'reliability', 'data', 'architecture']),
+    );
     expect(new Set(concepts.map((c) => c.id)).size).toBe(concepts.length);
   });
 });
