@@ -5,7 +5,7 @@ import { Canvas } from './Canvas';
 import { Inspector } from './Inspector';
 import { Palette } from './Palette';
 import { ReportCard } from './ReportCard';
-import { Timeline } from './Timeline';
+import { RunDock } from './RunDock';
 import { TopBar } from './TopBar';
 
 /** Drives playback with requestAnimationFrame while a run is playing. */
@@ -33,7 +33,7 @@ export function GameScreen() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
-      if (e.code === 'Space' && tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'BUTTON') {
+      if (e.code === 'Space' && !['INPUT', 'SELECT', 'BUTTON', 'TEXTAREA'].includes(tag)) {
         e.preventDefault();
         togglePlay();
       }
@@ -54,13 +54,15 @@ export function GameScreen() {
         <TopBar />
         <div className="workspace">
           <Palette />
-          <Canvas />
+          <main className="stage">
+            <Canvas />
+            <RunDock />
+          </main>
           <Inspector />
         </div>
-        <Timeline />
         <ReportCard />
         {toast && (
-          <div className="toast" role="status">
+          <div className="toast" role="alert">
             {toast}
           </div>
         )}

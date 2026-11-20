@@ -2,29 +2,41 @@ import { formatMinute, objectiveLabel } from '@cloud-architect/engine';
 import { catalogue, money, percent } from '../lib/catalogue';
 import { SANDBOX_ID } from '../lib/sandbox';
 import { useGame } from '../store/gameStore';
+import { IconCheck, IconCross } from './icons';
 
+/** The default side panel: who wants what, the goals, and what to expect. */
 export function BriefPanel() {
   const level = useGame((s) => s.level);
+  const result = useGame((s) => s.result);
   const sandbox = useGame((s) => s.sandbox);
   const updateSandbox = useGame((s) => s.updateSandbox);
   const resetDesign = useGame((s) => s.resetDesign);
   if (!level) return null;
   const isSandbox = level.id === SANDBOX_ID;
   const t = level.traffic;
+  const goals = [
+    ...level.objectives.map((o) => objectiveLabel(o, catalogue)),
+    `Monthly cost under ${money(level.budget)}`,
+  ];
+  // Result objectives come back in the same order: level objectives, then budget.
+  const outcome = result?.valid ? result.objectives : undefined;
+  const announced = level.incidents.filter((i) => i.warning);
+  const surprises = level.incidents.length - announced.length;
 
   return (
-    <aside className="inspector brief" aria-label="Level brief">
-      <p className="eyebrow">{isSandbox ? 'Free play' : `Act ${level.act} · Level ${level.index}`}</p>
-      <h2>{level.title}</h2>
-      <blockquote>
-        <p>{level.brief}</p>
-        <footer>{level.from}</footer>
-      </blockquote>
+    <div className="panel-body">
+      <figure className="brief">
+        <blockquote>{level.brief}</blockquote>
+        <figcaption>{level.from}</figcaption>
+      </figure>
 
       {isSandbox && (
-        <section className="sandbox-controls">
+        <section className="panel-section">
+          <h3 className="panel-label">Scenario</h3>
           <label className="field">
-            <span>Peak traffic: {sandbox.peakRps.toLocaleString()} req/s</span>
+            <span>
+              Peak traffic <b>{sandbox.peakRps.toLocaleString()} req/s</b>
+            </span>
             <input
               type="range"
               min={10}
@@ -35,7 +47,9 @@ export function BriefPanel() {
             />
           </label>
           <label className="field">
-            <span>Budget: {money(sandbox.budget)}/month</span>
+            <span>
+              Budget <b>{money(sandbox.budget)}/month</b>
+            </span>
             <input
               type="range"
               min={20}
@@ -45,69 +59,89 @@ export function BriefPanel() {
               onChange={(e) => updateSandbox({ budget: Number(e.target.value) })}
             />
           </label>
-          <label className="toggle">
+          <label className="check">
             <input
               type="checkbox"
               checked={sandbox.spike}
               onChange={(e) => updateSandbox({ spike: e.target.checked })}
             />
-            <span>Traffic spike (5x at lunch)</span>
+            Lunchtime traffic spike
           </label>
-          <label className="toggle">
+          <label className="check">
             <input
               type="checkbox"
               checked={sandbox.crash}
               onChange={(e) => updateSandbox({ crash: e.target.checked })}
             />
-            <span>Instance crash (at dinner)</span>
+            A server crashes at dinner
           </label>
         </section>
       )}
 
-      <h4>Objectives</h4>
-      <ul className="objectives">
-        {level.objectives.map((o, i) => (
-          <li key={i}>{objectiveLabel(o, catalogue)}</li>
-        ))}
-        <li>Monthly cost under {money(level.budget)}</li>
-      </ul>
+      <section className="panel-section">
+        <h3 className="panel-label">Goals</h3>
+        <ul className="goals">
+          {goals.map((g, i) => {
+            const o = outcome?.[i];
+            return (
+              <li key={g} className={o ? (o.pass ? 'pass' : 'fail') : ''}>
+                <span className="goal-mark" aria-label={o ? (o.pass ? 'Met' : 'Not met') : undefined}>
+                  {o ? o.pass ? <IconCheck /> : <IconCross /> : null}
+                </span>
+                <span>
+                  {g}
+                  {o && !o.pass && <small>{o.actual}</small>}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
-      <h4>Traffic</h4>
-      <p className="small">
-        Peaks at <strong>{t.peakRps.toLocaleString()} req/s</strong> around dinner time:{' '}
-        {percent(t.mix.static, 0)} static files, {percent(t.mix.read, 0)} reads, {percent(t.mix.write, 0)}{' '}
-        writes (orders). Customers are {t.userLatencyMs} ms from the AWS region.
-      </p>
+      <section className="panel-section">
+        <h3 className="panel-label">The day ahead</h3>
+        <dl className="facts">
+          <div className="fact-row">
+            <dt>Peak</dt>
+            <dd>{t.peakRps.toLocaleString()} req/s at dinner</dd>
+          </div>
+          <div className="fact-row">
+            <dt>Mix</dt>
+            <dd>
+              {percent(t.mix.static, 0)} files · {percent(t.mix.read, 0)} reads · {percent(t.mix.write, 0)}{' '}
+              orders
+            </dd>
+          </div>
+          {announced.map((i) => (
+            <div key={i.id} className="fact-row">
+              <dt>{formatMinute(i.atMinute)}</dt>
+              <dd>{i.title}</dd>
+            </div>
+          ))}
+          {surprises > 0 && (
+            <div className="fact-row">
+              <dt>Anytime</dt>
+              <dd>Something unannounced</dd>
+            </div>
+          )}
+        </dl>
+      </section>
 
-      {level.incidents.some((i) => i.warning) && (
-        <>
-          <h4>Forecast</h4>
-          <ul className="forecast">
-            {level.incidents
-              .filter((i) => i.warning)
-              .map((i) => (
-                <li key={i.id}>
-                  <strong>{formatMinute(i.atMinute)}</strong> {i.title}
-                </li>
-              ))}
+      {level.hints.length > 0 && (
+        <details className="panel-section disclosure">
+          <summary>Stuck? Get a hint</summary>
+          <ul className="hint-list">
+            {level.hints.map((h) => (
+              <li key={h}>{h}</li>
+            ))}
           </ul>
-        </>
-      )}
-      {level.incidents.some((i) => !i.warning) && (
-        <p className="small warn-text">Expect the unexpected: this level has unannounced incidents.</p>
+          <p className="muted">{level.lesson}</p>
+        </details>
       )}
 
-      <details>
-        <summary>What this level teaches</summary>
-        <p className="small">{level.lesson}</p>
-      </details>
-
-      <p className="muted small">
-        Select a component to configure it. Drag from a component's right handle to another to connect them.
-      </p>
-      <button className="btn ghost" onClick={resetDesign}>
-        Reset to starting design
+      <button className="link-btn subtle" onClick={resetDesign}>
+        Reset to the starting design
       </button>
-    </aside>
+    </div>
   );
 }

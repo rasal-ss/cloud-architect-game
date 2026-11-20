@@ -1,76 +1,96 @@
-import { acts, levelsInAct } from '@cloud-architect/content';
-import { money } from '../lib/catalogue';
+import { acts, levels, levelsInAct } from '@cloud-architect/content';
 import { useGame } from '../store/gameStore';
+import { IconArrow, Stars } from './icons';
 
 export function LevelSelect() {
   const progress = useGame((s) => s.progress);
   const openLevel = useGame((s) => s.openLevel);
   const openSandbox = useGame((s) => s.openSandbox);
   const totalStars = Object.values(progress).reduce((s, p) => s + p.stars, 0);
+  const next =
+    levels.find((l) => !progress[l.id]?.stars) ??
+    levels.find((l) => (progress[l.id]?.stars ?? 0) < 3) ??
+    levels[0]!;
+  const started = totalStars > 0;
 
   return (
-    <main className="menu">
-      <header className="hero">
-        <p className="eyebrow">A browser puzzle game about AWS architecture</p>
+    <div className="menu">
+      <header className="menu-bar">
+        <span className="wordmark">
+          <Logo /> Cloud Architect
+        </span>
+        <span className="menu-stars" title="Stars earned">
+          <Stars count={1} size={13} label={false} /> {totalStars} / {levels.length * 3}
+        </span>
+      </header>
+
+      <section className="hero">
         <h1>
-          Cloud Architect: <span>Scale or Fail</span>
+          Scale <em>or fail.</em>
         </h1>
         <p className="lead">
-          Design, scale and rescue real AWS architectures for NimbusCart, a grocery-delivery startup. Every
-          level has a budget, a traffic curve and failures that will happen. Build something that survives.
+          Design AWS architectures for a growing startup. Each level gives you a budget and a day of real
+          traffic, and something will break. Build it so it doesn’t.
         </p>
-        <div className="hero-stats">
-          <span>
-            ★ {totalStars} / {acts.length * 15}
-          </span>
-          <button className="btn" onClick={openSandbox}>
+        <div className="hero-actions">
+          <button className="btn primary lg" onClick={() => openLevel(next.id)}>
+            {started ? 'Continue' : 'Start'} · {next.title.replace(/^Boss: /, '')}
+            <IconArrow />
+          </button>
+          <button className="btn ghost lg" onClick={openSandbox}>
             Open sandbox
           </button>
         </div>
-      </header>
+      </section>
 
       {acts.map((act) => (
         <section key={act.act} className="act">
-          <header>
-            <h2>
-              Act {act.act}: {act.title}
-            </h2>
-            <span className="muted">
+          <div className="act-head">
+            <span className="act-num">Act {act.act}</span>
+            <h2>{act.title}</h2>
+            <p>
               {act.stage} · {act.scale}
-            </span>
-          </header>
-          <div className="level-grid">
+            </p>
+          </div>
+          <ol className="level-row">
             {levelsInAct(act.act).map((l) => {
-              const p = progress[l.id];
+              const stars = progress[l.id]?.stars ?? 0;
               return (
-                <button
-                  key={l.id}
-                  className={`level-card ${l.boss ? 'boss' : ''}`}
-                  onClick={() => openLevel(l.id)}
-                >
-                  <span className="level-num">{l.boss ? 'BOSS' : `${l.act}-${l.index}`}</span>
-                  <strong>{l.title.replace(/^Boss: /, '')}</strong>
-                  <span className="muted small">
-                    Budget {money(l.budget)} · peak {l.traffic.peakRps.toLocaleString()} req/s
-                  </span>
-                  <span className="stars small" aria-label={`${p?.stars ?? 0} of 3 stars`}>
-                    {[1, 2, 3].map((i) => (
-                      <span key={i} className={p && i <= p.stars ? 'on' : ''}>
-                        ★
-                      </span>
-                    ))}
-                  </span>
-                </button>
+                <li key={l.id}>
+                  <button
+                    className={`level-tile${l.boss ? ' boss' : ''}${l.id === next.id ? ' next' : ''}`}
+                    onClick={() => openLevel(l.id)}
+                  >
+                    <span className="tile-id">{l.boss ? 'Boss' : l.id}</span>
+                    <span className="tile-title">{l.title.replace(/^Boss: /, '')}</span>
+                    <Stars count={stars} size={12} />
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ol>
         </section>
       ))}
 
-      <footer className="menu-foot muted small">
-        In-game prices and capacities are tuned for gameplay and are approximate. The game never touches a
-        real AWS account. Coming next: Acts 4-15, Data Architect mode and Export to Terraform.
+      <footer className="menu-foot">
+        Prices and capacities are simplified for gameplay. Nothing here touches a real AWS account.
       </footer>
-    </main>
+    </div>
+  );
+}
+
+export function Logo() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden className="logo">
+      <rect x="1" y="1" width="22" height="22" rx="6" fill="currentColor" />
+      <path
+        d="M6 15.5h3.5l2-6 2.5 9 2-4.5H18"
+        stroke="#f4f2ec"
+        strokeWidth="1.8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

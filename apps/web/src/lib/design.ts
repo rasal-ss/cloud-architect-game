@@ -1,6 +1,8 @@
 import type { Design, NodeConfig, ServiceKind } from '@cloud-architect/content';
 import type { Edge, Node } from '@xyflow/react';
 
+export const DRAG_MIME = 'application/x-cloud-architect-service';
+
 export type ServiceNodeData = {
   kind: ServiceKind;
   label?: string;

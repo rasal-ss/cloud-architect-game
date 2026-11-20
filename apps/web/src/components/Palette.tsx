@@ -1,7 +1,8 @@
 import type { ServiceKind } from '@cloud-architect/content';
-import { CATEGORY_COLOR, KIND_GLYPH, catalogue, money } from '../lib/catalogue';
+import { catalogue, money } from '../lib/catalogue';
 import { useGame } from '../store/gameStore';
-import { DRAG_MIME } from './Canvas';
+import { DRAG_MIME } from '../lib/design';
+import { Glyph } from './Glyph';
 
 const ORDER: ServiceKind[] = ['cloudfront', 's3', 'alb', 'ec2', 'asg', 'elasticache', 'rds', 'rds_replica'];
 
@@ -13,49 +14,34 @@ export function Palette() {
   const kinds = ORDER.filter((k) => (level.palette as readonly ServiceKind[]).includes(k));
 
   return (
-    <aside className="palette" aria-label="Service palette">
-      <h3>Services</h3>
-      <p className="muted small">Drag onto the canvas, or click to add.</p>
-      {kinds.map((kind) => {
-        const spec = catalogue.get(kind);
-        const from = spec.sizes?.[0]?.monthlyCost ?? spec.monthlyCost;
-        return (
-          <button
-            key={kind}
-            className="palette-item"
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData(DRAG_MIME, kind);
-              e.dataTransfer.effectAllowed = 'move';
-            }}
-            onClick={() => addService(kind, { x: 260 + (nodeCount % 4) * 40, y: 60 + (nodeCount % 6) * 70 })}
-            title={spec.description}
-          >
-            <span className="palette-icon" style={{ background: CATEGORY_COLOR[spec.category] }}>
-              {KIND_GLYPH[kind]}
-            </span>
-            <span className="palette-text">
-              <strong>{spec.shortName}</strong>
-              <span className="muted small">{from > 0 ? `from ${money(from)}/mo` : 'pay per request'}</span>
-            </span>
-          </button>
-        );
-      })}
-      <div className="legend">
-        <h4>Traffic</h4>
-        <span>
-          <i style={{ background: '#38bdf8' }} /> static
-        </span>
-        <span>
-          <i style={{ background: '#4ade80' }} /> reads
-        </span>
-        <span>
-          <i style={{ background: '#fb923c' }} /> writes
-        </span>
-        <span>
-          <i style={{ background: '#ef4444' }} /> failing
-        </span>
-      </div>
+    <aside className="palette" aria-label="Components">
+      <h2 className="panel-label">Components</h2>
+      <ul>
+        {kinds.map((kind) => {
+          const spec = catalogue.get(kind);
+          const from = spec.sizes?.[0]?.monthlyCost ?? spec.monthlyCost;
+          return (
+            <li key={kind}>
+              <button
+                className="palette-item"
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(DRAG_MIME, kind);
+                  e.dataTransfer.effectAllowed = 'move';
+                }}
+                onClick={() =>
+                  addService(kind, { x: 280 + (nodeCount % 3) * 40, y: 80 + (nodeCount % 5) * 90 })
+                }
+                title={`${spec.description} ${from > 0 ? `From ${money(from)}/month.` : 'Pay per request.'}`}
+              >
+                <Glyph kind={kind} />
+                <span>{spec.shortName}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="palette-tip">Drag onto the canvas or click to add</p>
     </aside>
   );
 }

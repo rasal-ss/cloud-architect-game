@@ -1,25 +1,15 @@
 import type { ServiceKind } from '@cloud-architect/content';
-import {
-  Background,
-  BackgroundVariant,
-  Controls,
-  MarkerType,
-  MiniMap,
-  ReactFlow,
-  useReactFlow,
-} from '@xyflow/react';
+import { Background, BackgroundVariant, Controls, ReactFlow, useReactFlow } from '@xyflow/react';
 import { type DragEvent, useCallback } from 'react';
-import { CATEGORY_COLOR, catalogue } from '../lib/catalogue';
-import type { ServiceFlowNode, TrafficFlowEdge } from '../lib/design';
+import { useCoachMessage } from '../lib/coach';
+import { DRAG_MIME, type ServiceFlowNode, type TrafficFlowEdge } from '../lib/design';
 import { isValidConnection, useGame } from '../store/gameStore';
 import { ServiceNode } from './ServiceNode';
 import { TrafficEdge } from './TrafficEdge';
 
-export const DRAG_MIME = 'application/x-cloud-architect-service';
-
 const nodeTypes = { service: ServiceNode };
 const edgeTypes = { traffic: TrafficEdge };
-const defaultEdgeOptions = { type: 'traffic', markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b' } };
+const defaultEdgeOptions = { type: 'traffic' };
 
 export function Canvas() {
   const nodes = useGame((s) => s.nodes);
@@ -37,7 +27,7 @@ export function Canvas() {
       const kind = e.dataTransfer.getData(DRAG_MIME) as ServiceKind;
       if (!kind) return;
       const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      addService(kind, { x: pos.x - 80, y: pos.y - 28 });
+      addService(kind, { x: pos.x - 80, y: pos.y - 24 });
     },
     [addService, screenToFlowPosition],
   );
@@ -62,24 +52,28 @@ export function Canvas() {
         onNodeClick={(_, n) => select(n.id)}
         onPaneClick={() => select(null)}
         snapToGrid
-        snapGrid={[20, 20]}
+        snapGrid={[12, 12]}
         fitView
-        fitViewOptions={{ padding: 0.3, maxZoom: 1.1 }}
+        minZoom={0.25}
+        fitViewOptions={{ padding: 0.12, maxZoom: 1, minZoom: 0.25 }}
         deleteKeyCode={['Backspace', 'Delete']}
-        proOptions={{ hideAttribution: false }}
-        colorMode="dark"
+        colorMode="light"
       >
-        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#1e293b" />
-        <Controls showInteractive={false} />
-        <MiniMap
-          pannable
-          zoomable
-          nodeColor={(n) =>
-            CATEGORY_COLOR[catalogue.get((n as ServiceFlowNode).data.kind).category] ?? '#64748b'
-          }
-          maskColor="rgba(2, 6, 23, 0.7)"
-        />
+        <Background variant={BackgroundVariant.Lines} gap={24} color="#ebe7de" />
+        <Controls showInteractive={false} position="top-left" />
       </ReactFlow>
+      <CoachMark />
+    </div>
+  );
+}
+
+function CoachMark() {
+  const message = useCoachMessage();
+  if (!message) return null;
+  return (
+    <div className="coach" role="status">
+      <span className="coach-dot" aria-hidden />
+      {message}
     </div>
   );
 }

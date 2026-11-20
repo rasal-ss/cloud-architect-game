@@ -3,14 +3,14 @@ import { Catalogue } from '@cloud-architect/engine';
 
 export const catalogue = new Catalogue(services);
 
-/** Category colours loosely inspired by AWS architecture diagrams. */
+/** Category colours, kept muted so health colours (green/amber/red) stand out. */
 export const CATEGORY_COLOR: Record<string, string> = {
-  client: '#64748b',
-  compute: '#ed7100',
-  networking: '#8c4fff',
-  database: '#3b82f6',
-  caching: '#c925d1',
-  storage: '#7aa116',
+  client: '#5f6470',
+  compute: '#c4620c',
+  networking: '#6a4fc4',
+  database: '#2b62c9',
+  caching: '#a8327f',
+  storage: '#4d7d14',
 };
 
 export const KIND_GLYPH: Record<string, string> = {
@@ -18,18 +18,20 @@ export const KIND_GLYPH: Record<string, string> = {
   ec2: 'EC2',
   asg: 'ASG',
   alb: 'ALB',
-  cloudfront: 'CF',
+  cloudfront: 'CDN',
   s3: 'S3',
   rds: 'RDS',
   rds_replica: 'RR',
-  elasticache: 'EC',
+  elasticache: 'RC',
 };
 
 export const REQUEST_COLOR = {
-  static: '#38bdf8',
-  read: '#4ade80',
-  write: '#fb923c',
+  static: '#2f7de1',
+  read: '#16935a',
+  write: '#d9751c',
 } as const;
+
+export const FAIL_COLOR = '#d23b2e';
 
 export const money = (x: number) =>
   x >= 10_000 ? `$${(x / 1000).toFixed(1)}k` : `$${x.toFixed(x < 100 ? 2 : 0)}`;
