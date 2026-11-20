@@ -1,6 +1,7 @@
 {
   "name": "cloud-architect-game",
   "private": true,
+  "type": "module",
   "description": "Cloud Architect: Scale or Fail - a browser puzzle game about designing and scaling AWS architectures",
   "license": "MIT",
   "packageManager": "pnpm@10.28.0",

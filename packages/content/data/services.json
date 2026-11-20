@@ -1,0 +1,320 @@
+[
+  {
+    "kind": "users",
+    "name": "Internet users",
+    "shortName": "Users",
+    "category": "client",
+    "description": "Your customers. Every request starts here.",
+    "whenToUse": "Always present; connect it to the entry point of your architecture.",
+    "whenNotToUse": "It cannot be removed.",
+    "connectsTo": ["cloudfront", "alb", "ec2", "s3"],
+    "cost": {},
+    "latencyMs": {}
+  },
+  {
+    "kind": "ec2",
+    "name": "Amazon EC2",
+    "shortName": "EC2",
+    "category": "compute",
+    "description": "A virtual server that runs your application code.",
+    "whenToUse": "Steady, predictable load where you want full control of the server.",
+    "whenNotToUse": "Spiky traffic you cannot predict (it does not scale by itself), or serving large static files.",
+    "docsUrl": "https://docs.aws.amazon.com/ec2/",
+    "connectsTo": ["rds", "rds_replica", "elasticache"],
+    "sizes": [
+      {
+        "id": "t3.micro",
+        "label": "t3.micro (2 vCPU burst, 1 GiB)",
+        "capacity": 40,
+        "monthlyCost": 7.6
+      },
+      {
+        "id": "t3.small",
+        "label": "t3.small (2 vCPU burst, 2 GiB)",
+        "capacity": 80,
+        "monthlyCost": 15.2
+      },
+      {
+        "id": "t3.medium",
+        "label": "t3.medium (2 vCPU burst, 4 GiB)",
+        "capacity": 160,
+        "monthlyCost": 30.4
+      },
+      {
+        "id": "c7g.large",
+        "label": "c7g.large (2 vCPU, 4 GiB)",
+        "capacity": 400,
+        "monthlyCost": 52
+      },
+      {
+        "id": "c7g.xlarge",
+        "label": "c7g.xlarge (4 vCPU, 8 GiB)",
+        "capacity": 800,
+        "monthlyCost": 104
+      }
+    ],
+    "defaultSize": "t3.micro",
+    "perMillionRequests": 0.05,
+    "cost": {
+      "static": 2,
+      "read": 1,
+      "write": 1.5
+    },
+    "latencyMs": {
+      "static": 15,
+      "read": 25,
+      "write": 35
+    }
+  },
+  {
+    "kind": "asg",
+    "name": "EC2 Auto Scaling Group",
+    "shortName": "Auto Scaling",
+    "category": "compute",
+    "description": "A fleet of identical EC2 instances that grows and shrinks with load and replaces unhealthy instances.",
+    "whenToUse": "Traffic that changes through the day, and anywhere you need more than one server.",
+    "whenNotToUse": "Sudden spikes faster than instance warm-up (about 3 minutes) unless you keep headroom.",
+    "docsUrl": "https://docs.aws.amazon.com/autoscaling/ec2/userguide/",
+    "connectsTo": ["rds", "rds_replica", "elasticache"],
+    "sizes": [
+      {
+        "id": "t3.micro",
+        "label": "t3.micro",
+        "capacity": 40,
+        "monthlyCost": 7.6
+      },
+      {
+        "id": "t3.small",
+        "label": "t3.small",
+        "capacity": 80,
+        "monthlyCost": 15.2
+      },
+      {
+        "id": "t3.medium",
+        "label": "t3.medium",
+        "capacity": 160,
+        "monthlyCost": 30.4
+      },
+      {
+        "id": "c7g.large",
+        "label": "c7g.large",
+        "capacity": 400,
+        "monthlyCost": 52
+      },
+      {
+        "id": "c7g.xlarge",
+        "label": "c7g.xlarge",
+        "capacity": 800,
+        "monthlyCost": 104
+      }
+    ],
+    "defaultSize": "t3.medium",
+    "perMillionRequests": 0.05,
+    "cost": {
+      "static": 2,
+      "read": 1,
+      "write": 1.5
+    },
+    "latencyMs": {
+      "static": 15,
+      "read": 25,
+      "write": 35
+    }
+  },
+  {
+    "kind": "alb",
+    "name": "Application Load Balancer",
+    "shortName": "ALB",
+    "category": "networking",
+    "description": "Spreads HTTP requests across healthy targets in several Availability Zones.",
+    "whenToUse": "Whenever more than one server handles requests.",
+    "whenNotToUse": "A single tiny server on a tight budget; it has a fixed hourly cost.",
+    "docsUrl": "https://docs.aws.amazon.com/elasticloadbalancing/latest/application/",
+    "connectsTo": ["ec2", "asg"],
+    "capacity": 100000,
+    "monthlyCost": 18,
+    "perMillionRequests": 0.08,
+    "cost": {
+      "static": 0.01,
+      "read": 0.01,
+      "write": 0.01
+    },
+    "latencyMs": {
+      "static": 3,
+      "read": 3,
+      "write": 3
+    }
+  },
+  {
+    "kind": "cloudfront",
+    "name": "Amazon CloudFront",
+    "shortName": "CloudFront",
+    "category": "networking",
+    "description": "A global CDN. Caches static files at 400+ edge locations close to users.",
+    "whenToUse": "Images, scripts and styles; users far from your region; absorbing traffic spikes.",
+    "whenNotToUse": "Data that must never be stale (it is cached for the TTL).",
+    "docsUrl": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/",
+    "connectsTo": ["s3", "alb", "ec2"],
+    "capacity": 1000000,
+    "monthlyCost": 0,
+    "perMillionRequests": 0.12,
+    "cost": {
+      "static": 0.001,
+      "read": 0.001,
+      "write": 0.001
+    },
+    "latencyMs": {
+      "static": 10,
+      "read": 5,
+      "write": 5
+    }
+  },
+  {
+    "kind": "s3",
+    "name": "Amazon S3",
+    "shortName": "S3",
+    "category": "storage",
+    "description": "Object storage with 11 nines of durability. Serves files without any servers.",
+    "whenToUse": "Images, uploads, backups and static website assets.",
+    "whenNotToUse": "Dynamic pages or database queries. Do not make the bucket public; put CloudFront in front.",
+    "docsUrl": "https://docs.aws.amazon.com/s3/",
+    "connectsTo": [],
+    "capacity": 5500,
+    "monthlyCost": 1,
+    "perMillionRequests": 0.3,
+    "cost": {
+      "static": 1
+    },
+    "latencyMs": {
+      "static": 25
+    }
+  },
+  {
+    "kind": "rds",
+    "name": "Amazon RDS (PostgreSQL)",
+    "shortName": "RDS",
+    "category": "database",
+    "description": "A managed relational database: patching, backups and failover handled for you.",
+    "whenToUse": "Orders, payments and anything that needs transactions.",
+    "whenNotToUse": "Huge read-heavy traffic on one instance; add replicas or a cache first.",
+    "docsUrl": "https://docs.aws.amazon.com/rds/",
+    "connectsTo": ["rds_replica"],
+    "sizes": [
+      {
+        "id": "db.t3.micro",
+        "label": "db.t3.micro (2 vCPU burst, 1 GiB)",
+        "capacity": 60,
+        "monthlyCost": 13
+      },
+      {
+        "id": "db.t3.medium",
+        "label": "db.t3.medium (2 vCPU burst, 4 GiB)",
+        "capacity": 250,
+        "monthlyCost": 52
+      },
+      {
+        "id": "db.r6g.large",
+        "label": "db.r6g.large (2 vCPU, 16 GiB)",
+        "capacity": 800,
+        "monthlyCost": 170
+      },
+      {
+        "id": "db.r6g.xlarge",
+        "label": "db.r6g.xlarge (4 vCPU, 32 GiB)",
+        "capacity": 1600,
+        "monthlyCost": 340
+      },
+      {
+        "id": "db.r6g.2xlarge",
+        "label": "db.r6g.2xlarge (8 vCPU, 64 GiB)",
+        "capacity": 3200,
+        "monthlyCost": 680
+      }
+    ],
+    "defaultSize": "db.t3.micro",
+    "cost": {
+      "read": 1,
+      "write": 2
+    },
+    "latencyMs": {
+      "read": 6,
+      "write": 12
+    }
+  },
+  {
+    "kind": "rds_replica",
+    "name": "RDS read replica",
+    "shortName": "Read replica",
+    "category": "database",
+    "description": "An asynchronous copy of the primary database that serves read queries.",
+    "whenToUse": "Read-heavy traffic that overloads the primary.",
+    "whenNotToUse": "Reads that must see the latest write (replication lag), or any writes.",
+    "docsUrl": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html",
+    "connectsTo": [],
+    "sizes": [
+      {
+        "id": "db.t3.micro",
+        "label": "db.t3.micro",
+        "capacity": 60,
+        "monthlyCost": 13
+      },
+      {
+        "id": "db.t3.medium",
+        "label": "db.t3.medium",
+        "capacity": 250,
+        "monthlyCost": 52
+      },
+      {
+        "id": "db.r6g.large",
+        "label": "db.r6g.large",
+        "capacity": 800,
+        "monthlyCost": 170
+      },
+      {
+        "id": "db.r6g.xlarge",
+        "label": "db.r6g.xlarge",
+        "capacity": 1600,
+        "monthlyCost": 340
+      }
+    ],
+    "defaultSize": "db.t3.medium",
+    "cost": {
+      "read": 1
+    },
+    "latencyMs": {
+      "read": 6
+    }
+  },
+  {
+    "kind": "elasticache",
+    "name": "Amazon ElastiCache (Redis)",
+    "shortName": "ElastiCache",
+    "category": "caching",
+    "description": "An in-memory cache. Answers repeated reads in about a millisecond.",
+    "whenToUse": "Hot, read-heavy data such as product pages and sessions.",
+    "whenNotToUse": "Data that must always be fresh; it starts empty and needs time to warm up.",
+    "docsUrl": "https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/",
+    "connectsTo": ["rds", "rds_replica"],
+    "sizes": [
+      {
+        "id": "cache.t3.micro",
+        "label": "cache.t3.micro (0.5 GiB)",
+        "capacity": 2000,
+        "monthlyCost": 12
+      },
+      {
+        "id": "cache.r6g.large",
+        "label": "cache.r6g.large (13 GiB)",
+        "capacity": 20000,
+        "monthlyCost": 110
+      }
+    ],
+    "defaultSize": "cache.t3.micro",
+    "cost": {
+      "read": 1
+    },
+    "latencyMs": {
+      "read": 1
+    }
+  }
+]

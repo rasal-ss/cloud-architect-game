@@ -1,0 +1,18 @@
+{
+  "name": "@cloud-architect/content",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Game content (services, levels, incidents) as JSON, validated with zod schemas",
+  "exports": {
+    ".": "./src/index.ts",
+    "./solutions": "./src/solutions.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.25.0"
+  }
+}
