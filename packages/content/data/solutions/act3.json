@@ -1,0 +1,520 @@
+{
+  "3-1": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "lb",
+        "kind": "alb",
+        "x": 300,
+        "y": 300,
+        "config": {
+          "healthChecks": true
+        },
+        "label": "Load balancer"
+      },
+      {
+        "id": "web1",
+        "kind": "ec2",
+        "x": 560,
+        "y": 220,
+        "config": {
+          "size": "t3.medium",
+          "az": "a",
+          "securityGroup": "web-only"
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "web2",
+        "kind": "ec2",
+        "x": 560,
+        "y": 400,
+        "config": {
+          "size": "t3.medium",
+          "az": "b",
+          "securityGroup": "web-only"
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.t3.medium",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-lb",
+        "from": "users",
+        "to": "lb"
+      },
+      {
+        "id": "lb-web1",
+        "from": "lb",
+        "to": "web1"
+      },
+      {
+        "id": "lb-web2",
+        "from": "lb",
+        "to": "web2"
+      },
+      {
+        "id": "web1-db",
+        "from": "web1",
+        "to": "db"
+      },
+      {
+        "id": "web2-db",
+        "from": "web2",
+        "to": "db"
+      }
+    ]
+  },
+  "3-2": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "lb",
+        "kind": "alb",
+        "x": 300,
+        "y": 300,
+        "config": {
+          "healthChecks": true
+        },
+        "label": "Load balancer"
+      },
+      {
+        "id": "fleet",
+        "kind": "asg",
+        "x": 560,
+        "y": 300,
+        "config": {
+          "size": "t3.medium",
+          "min": 2,
+          "max": 6,
+          "targetUtilization": 0.6,
+          "azs": 2,
+          "securityGroup": "web-only",
+          "alarms": false
+        },
+        "label": "Web fleet"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.r6g.large",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-lb",
+        "from": "users",
+        "to": "lb"
+      },
+      {
+        "id": "lb-fleet",
+        "from": "lb",
+        "to": "fleet"
+      },
+      {
+        "id": "fleet-db",
+        "from": "fleet",
+        "to": "db"
+      }
+    ]
+  },
+  "3-3": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "lb",
+        "kind": "alb",
+        "x": 300,
+        "y": 300,
+        "config": {
+          "healthChecks": true
+        },
+        "label": "Load balancer"
+      },
+      {
+        "id": "fleet",
+        "kind": "asg",
+        "x": 560,
+        "y": 300,
+        "config": {
+          "size": "t3.medium",
+          "min": 2,
+          "max": 6,
+          "targetUtilization": 0.6,
+          "azs": 2,
+          "securityGroup": "web-only",
+          "alarms": false
+        },
+        "label": "Web fleet"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.r6g.large",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-lb",
+        "from": "users",
+        "to": "lb"
+      },
+      {
+        "id": "lb-fleet",
+        "from": "lb",
+        "to": "fleet"
+      },
+      {
+        "id": "fleet-db",
+        "from": "fleet",
+        "to": "db"
+      }
+    ]
+  },
+  "3-4": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "lb",
+        "kind": "alb",
+        "x": 300,
+        "y": 300,
+        "config": {
+          "healthChecks": true
+        },
+        "label": "Load balancer"
+      },
+      {
+        "id": "web1",
+        "kind": "ec2",
+        "x": 560,
+        "y": 220,
+        "config": {
+          "size": "t3.medium",
+          "az": "a",
+          "securityGroup": "web-only",
+          "alarms": true
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "web2",
+        "kind": "ec2",
+        "x": 560,
+        "y": 400,
+        "config": {
+          "size": "t3.medium",
+          "az": "b",
+          "securityGroup": "web-only",
+          "alarms": true
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.t3.medium",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-lb",
+        "from": "users",
+        "to": "lb"
+      },
+      {
+        "id": "lb-web1",
+        "from": "lb",
+        "to": "web1"
+      },
+      {
+        "id": "lb-web2",
+        "from": "lb",
+        "to": "web2"
+      },
+      {
+        "id": "web1-db",
+        "from": "web1",
+        "to": "db"
+      },
+      {
+        "id": "web2-db",
+        "from": "web2",
+        "to": "db"
+      }
+    ]
+  },
+  "3-5": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "lb",
+        "kind": "alb",
+        "x": 300,
+        "y": 300,
+        "config": {
+          "healthChecks": true
+        },
+        "label": "Load balancer"
+      },
+      {
+        "id": "fleet",
+        "kind": "asg",
+        "x": 560,
+        "y": 300,
+        "config": {
+          "size": "c7g.large",
+          "min": 2,
+          "max": 10,
+          "targetUtilization": 0.5,
+          "azs": 2,
+          "securityGroup": "web-only",
+          "alarms": true
+        },
+        "label": "Web fleet"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.r6g.xlarge",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-lb",
+        "from": "users",
+        "to": "lb"
+      },
+      {
+        "id": "lb-fleet",
+        "from": "lb",
+        "to": "fleet"
+      },
+      {
+        "id": "fleet-db",
+        "from": "fleet",
+        "to": "db"
+      }
+    ]
+  }
+}

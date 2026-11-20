@@ -1,0 +1,232 @@
+{
+  "1-1": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.micro",
+          "az": "a",
+          "securityGroup": "web-only"
+        },
+        "label": "Web server"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      }
+    ]
+  },
+  "1-2": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.micro",
+          "az": "a",
+          "securityGroup": "web-only",
+          "elasticIp": true
+        },
+        "label": "Web server"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      }
+    ]
+  },
+  "1-3": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.micro",
+          "az": "a",
+          "securityGroup": "web-only",
+          "elasticIp": true
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      },
+      {
+        "id": "users-assets",
+        "from": "users",
+        "to": "assets"
+      }
+    ]
+  },
+  "1-4": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.micro",
+          "az": "a",
+          "securityGroup": "web-only",
+          "elasticIp": true
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      },
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      }
+    ]
+  },
+  "1-5": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.micro",
+          "az": "a",
+          "securityGroup": "web-only"
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      },
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      }
+    ]
+  }
+}

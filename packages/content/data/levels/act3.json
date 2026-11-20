@@ -1,0 +1,771 @@
+[
+  {
+    "id": "3-1",
+    "index": 1,
+    "title": "Two Servers Are Better Than One",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "We were featured on the app store! Our single server went down twice this week. Our first enterprise customer wants better than 99.5% availability, and I've been told a server will fail during lunch today.",
+    "lesson": "An Application Load Balancer spreads traffic across several servers and stops sending requests to one that fails its health checks.",
+    "budget": 230,
+    "traffic": {
+      "peakRps": 300,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.6,
+        "read": 0.3,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "crash",
+        "type": "instance_crash",
+        "atMinute": 750,
+        "target": "random",
+        "warning": true,
+        "title": "Lunchtime crash",
+        "lesson": "Redundancy turns an outage into a non-event: the load balancer routes around the failed server."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      },
+      {
+        "type": "uses",
+        "kind": "alb"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "web",
+          "kind": "ec2",
+          "x": 520,
+          "y": 260,
+          "config": {
+            "size": "c7g.large",
+            "az": "a",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.t3.medium",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-web",
+          "from": "users",
+          "to": "web"
+        },
+        {
+          "id": "web-db",
+          "from": "web",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Place an ALB, connect Customers to it, and put two servers behind it. Each server must cope alone while the other is down."
+    ],
+    "act": 3,
+    "seed": 1031
+  },
+  {
+    "id": "3-2",
+    "index": 2,
+    "title": "Auto Scaling on CPU",
+    "from": "Raj, NimbusCart investor",
+    "brief": "Traffic now swings wildly: dead quiet at night, huge at dinner. Running enough servers for the peak all day is burning my money. Can the fleet grow and shrink by itself?",
+    "lesson": "An Auto Scaling Group adds instances when average load passes a target and removes them when it drops. New instances take about 3 minutes to warm up.",
+    "budget": 420,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.06],
+        [4, 0.03],
+        [7, 0.15],
+        [9, 0.4],
+        [12, 0.75],
+        [14, 0.45],
+        [17, 0.6],
+        [19.5, 1],
+        [21.5, 0.6],
+        [24, 0.06]
+      ],
+      "mix": {
+        "static": 0.6,
+        "read": 0.3,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "uses",
+        "kind": "asg"
+      },
+      {
+        "type": "availability",
+        "min": 0.99
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "web1",
+          "kind": "ec2",
+          "x": 560,
+          "y": 220,
+          "config": {
+            "size": "c7g.large",
+            "az": "a",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        },
+        {
+          "id": "web2",
+          "kind": "ec2",
+          "x": 560,
+          "y": 400,
+          "config": {
+            "size": "c7g.large",
+            "az": "b",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.r6g.large",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-web1",
+          "from": "lb",
+          "to": "web1"
+        },
+        {
+          "id": "lb-web2",
+          "from": "lb",
+          "to": "web2"
+        },
+        {
+          "id": "web1-db",
+          "from": "web1",
+          "to": "db"
+        },
+        {
+          "id": "web2-db",
+          "from": "web2",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1,
+      "cost": 2,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": [
+      "Replace the fixed servers with an Auto Scaling Group behind the load balancer, and connect the group to the database."
+    ],
+    "act": 3,
+    "seed": 1032
+  },
+  {
+    "id": "3-3",
+    "index": 3,
+    "title": "Spread Across Two AZs",
+    "from": "Lena, cloud consultant",
+    "brief": "I reviewed your setup and every web server sits in one Availability Zone, which is one group of data centres. One power or network problem there and you're offline. Spread out, and prove it survives losing a server.",
+    "lesson": "Availability Zones are isolated data centres in a region. Spreading instances across at least two is the foundation of high availability.",
+    "budget": 420,
+    "traffic": {
+      "peakRps": 600,
+      "curve": [
+        [0, 0.06],
+        [4, 0.03],
+        [7, 0.15],
+        [9, 0.4],
+        [12, 0.75],
+        [14, 0.45],
+        [17, 0.6],
+        [19.5, 1],
+        [21.5, 0.6],
+        [24, 0.06]
+      ],
+      "mix": {
+        "static": 0.6,
+        "read": 0.3,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "crash",
+        "type": "instance_crash",
+        "atMinute": 1200,
+        "target": "random",
+        "warning": true,
+        "title": "Instance failure",
+        "lesson": "Multi-AZ fleets survive both instance and AZ failures; the ASG replaces lost capacity automatically."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "config",
+        "check": "multiAz"
+      },
+      {
+        "type": "availability",
+        "min": 0.99
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": true
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "fleet",
+          "kind": "asg",
+          "x": 560,
+          "y": 300,
+          "config": {
+            "size": "t3.medium",
+            "min": 2,
+            "max": 6,
+            "targetUtilization": 0.6,
+            "azs": 1,
+            "securityGroup": "web-only",
+            "alarms": false
+          },
+          "label": "Web fleet"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.r6g.large",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-fleet",
+          "from": "lb",
+          "to": "fleet"
+        },
+        {
+          "id": "fleet-db",
+          "from": "fleet",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": ["Select the Auto Scaling Group and spread it over two AZs."],
+    "act": 3,
+    "seed": 1033
+  },
+  {
+    "id": "3-4",
+    "index": 4,
+    "title": "Health Checks and Alarms",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "Last night a server died and the load balancer kept sending customers to it for ten minutes. Nobody noticed until people complained online. Our new contract says 99.9% availability. Make sure that never happens again.",
+    "lesson": "Health checks let the load balancer stop routing to a dead target within seconds. CloudWatch alarms tell you, and trigger recovery, before customers do.",
+    "budget": 230,
+    "traffic": {
+      "peakRps": 300,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.6,
+        "read": 0.3,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "crash",
+        "type": "instance_crash",
+        "atMinute": 1185,
+        "target": "random",
+        "warning": true,
+        "title": "Server dies at dinner",
+        "lesson": "Detection time is downtime. Automate detection with health checks and alarms."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.999
+      },
+      {
+        "type": "config",
+        "check": "healthChecks"
+      },
+      {
+        "type": "config",
+        "check": "alarms"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "lb",
+          "kind": "alb",
+          "x": 300,
+          "y": 300,
+          "config": {
+            "healthChecks": false
+          },
+          "label": "Load balancer"
+        },
+        {
+          "id": "web1",
+          "kind": "ec2",
+          "x": 560,
+          "y": 220,
+          "config": {
+            "size": "t3.medium",
+            "az": "a",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        },
+        {
+          "id": "web2",
+          "kind": "ec2",
+          "x": 560,
+          "y": 400,
+          "config": {
+            "size": "t3.medium",
+            "az": "b",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.t3.medium",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-lb",
+          "from": "users",
+          "to": "lb"
+        },
+        {
+          "id": "lb-web1",
+          "from": "lb",
+          "to": "web1"
+        },
+        {
+          "id": "lb-web2",
+          "from": "lb",
+          "to": "web2"
+        },
+        {
+          "id": "web1-db",
+          "from": "web1",
+          "to": "db"
+        },
+        {
+          "id": "web2-db",
+          "from": "web2",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 1.5,
+      "sustainability": 0.5
+    },
+    "hints": ["Check the load balancer and both servers in the inspector."],
+    "act": 3,
+    "seed": 1034
+  },
+  {
+    "id": "3-5",
+    "index": 5,
+    "boss": true,
+    "title": "Boss: 10x in 3 Minutes",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "A celebrity is about to post about NimbusCart to 20 million followers, some time around lunch. Traffic will jump ten-fold within minutes, and something always breaks under pressure. Build it from scratch. We can't be down for this.",
+    "lesson": "Auto Scaling reacts in minutes, but spikes arrive in seconds. Keep headroom (a lower target or bigger instances), offload static content to the edge, and size the database for the peak.",
+    "budget": 650,
+    "traffic": {
+      "peakRps": 200,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.6,
+        "read": 0.3,
+        "write": 0.1
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "celebrity",
+        "type": "traffic_spike",
+        "atMinute": 720,
+        "multiplier": 10,
+        "rampMinutes": 3,
+        "holdMinutes": 45,
+        "warning": false,
+        "title": "Celebrity post",
+        "lesson": "Scaling takes minutes: headroom absorbs the first wave while new instances boot."
+      },
+      {
+        "id": "crash",
+        "type": "instance_crash",
+        "atMinute": 740,
+        "target": "random",
+        "warning": false,
+        "title": "Instance crash under load",
+        "lesson": "Failures cluster under load. Every tier needs spare capacity to absorb a loss at the worst moment."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.995
+      },
+      {
+        "type": "p95",
+        "maxMs": 400
+      },
+      {
+        "type": "noDataLoss"
+      },
+      {
+        "type": "config",
+        "check": "multiAz"
+      },
+      {
+        "type": "noSecurityIssues"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds", "alb", "asg"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 1,
+      "operations": 1,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "A lower target utilisation keeps spare capacity running for the first minutes of a spike.",
+      "The database cannot auto scale. Size it for ten times the normal lunch traffic."
+    ],
+    "act": 3,
+    "seed": 1035
+  }
+]

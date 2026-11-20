@@ -1,0 +1,606 @@
+[
+  {
+    "id": "2-1",
+    "index": 1,
+    "title": "The Database Lives on the Server",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "We have 1,000 paying customers! Orders, accounts and stock all live in a database on the same server as the website. Dinner time is getting slow. Can you keep it fast without breaking the bank?",
+    "lesson": "Vertical scaling (a bigger instance) is the quickest fix. But a database on the web server competes for CPU, and its data lives on a single disk. Read the post-mortem warnings.",
+    "budget": 30,
+    "traffic": {
+      "peakRps": 40,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.35,
+        "write": 0.15
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "p95",
+        "maxMs": 200
+      },
+      {
+        "type": "availability",
+        "min": 0.99
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "web",
+          "kind": "ec2",
+          "x": 520,
+          "y": 260,
+          "config": {
+            "size": "t3.micro",
+            "az": "a",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-web",
+          "from": "users",
+          "to": "web"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1.5,
+      "cost": 1.5,
+      "security": 0.5,
+      "operations": 0,
+      "sustainability": 1
+    },
+    "hints": ["Try a bigger instance size for the web server, but not bigger than you need."],
+    "act": 2,
+    "seed": 1021
+  },
+  {
+    "id": "2-2",
+    "index": 2,
+    "title": "Move the Data to RDS",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "Our monitoring says the server's hardware is failing and it might crash some time this afternoon. If it goes, do we lose every order? Please tell me we don't.",
+    "lesson": "Amazon RDS keeps the database on separate, managed infrastructure with automated backups. Servers become replaceable; data survives.",
+    "budget": 40,
+    "traffic": {
+      "peakRps": 40,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.35,
+        "write": 0.15
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "hw",
+        "type": "instance_crash",
+        "atMinute": 840,
+        "target": "random",
+        "warning": true,
+        "title": "Hardware failure",
+        "lesson": "Treat servers as disposable. Keep state (orders, sessions, files) somewhere that outlives any one instance."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "noDataLoss"
+      },
+      {
+        "type": "uses",
+        "kind": "rds"
+      },
+      {
+        "type": "availability",
+        "min": 0.98
+      },
+      {
+        "type": "p95",
+        "maxMs": 250
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "web",
+          "kind": "ec2",
+          "x": 520,
+          "y": 260,
+          "config": {
+            "size": "t3.small",
+            "az": "a",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-web",
+          "from": "users",
+          "to": "web"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1
+    },
+    "hints": [
+      "Add an RDS database and connect the web server to it. Once the database moves out, the server needs less CPU."
+    ],
+    "act": 2,
+    "seed": 1022
+  },
+  {
+    "id": "2-3",
+    "index": 3,
+    "title": "Pick the Right Size",
+    "from": "Raj, NimbusCart investor",
+    "brief": "A regional grocery chain is partnering with you, so expect three times the traffic. I'm happy to fund growth, but I want to see you aren't paying for capacity you don't use.",
+    "lesson": "Right-sizing: pick the smallest instance that keeps peak load comfortably under 80%. Too small drops requests; too big wastes money and scores badly on sustainability.",
+    "budget": 120,
+    "traffic": {
+      "peakRps": 120,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.35,
+        "write": 0.15
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "p95",
+        "maxMs": 200
+      },
+      {
+        "type": "availability",
+        "min": 0.99
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "web",
+          "kind": "ec2",
+          "x": 520,
+          "y": 260,
+          "config": {
+            "size": "t3.micro",
+            "az": "a",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.t3.micro",
+            "backupRetentionDays": 7,
+            "publiclyAccessible": false,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-web",
+          "from": "users",
+          "to": "web"
+        },
+        {
+          "id": "web-db",
+          "from": "web",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1,
+      "cost": 2,
+      "security": 0.5,
+      "operations": 0.5,
+      "sustainability": 1.5
+    },
+    "hints": [
+      "Run it once and watch which component turns red. Click it to see its peak load, then size up one step at a time."
+    ],
+    "act": 2,
+    "seed": 1023
+  },
+  {
+    "id": "2-4",
+    "index": 4,
+    "title": "Backups Before Disaster",
+    "from": "Priya, NimbusCart accountant",
+    "brief": "Two questions from your new accountant: where are the backups? And why can anyone on the internet connect to the database? I need good answers before our audit.",
+    "lesson": "Automated backups enable point-in-time restore. Databases belong in private subnets: only your servers should be able to reach them.",
+    "budget": 120,
+    "traffic": {
+      "peakRps": 120,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.35,
+        "write": 0.15
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "config",
+        "check": "backups"
+      },
+      {
+        "type": "noSecurityIssues"
+      },
+      {
+        "type": "availability",
+        "min": 0.99
+      },
+      {
+        "type": "p95",
+        "maxMs": 200
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "cdn",
+          "kind": "cloudfront",
+          "x": 260,
+          "y": 60,
+          "config": {
+            "ttlSeconds": 86400
+          }
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        },
+        {
+          "id": "web",
+          "kind": "ec2",
+          "x": 520,
+          "y": 260,
+          "config": {
+            "size": "t3.medium",
+            "az": "a",
+            "securityGroup": "web-only"
+          },
+          "label": "Web server"
+        },
+        {
+          "id": "db",
+          "kind": "rds",
+          "x": 800,
+          "y": 300,
+          "config": {
+            "size": "db.t3.medium",
+            "backupRetentionDays": 0,
+            "publiclyAccessible": true,
+            "az": "a"
+          },
+          "label": "Orders DB"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-cdn",
+          "from": "users",
+          "to": "cdn"
+        },
+        {
+          "id": "cdn-assets",
+          "from": "cdn",
+          "to": "assets"
+        },
+        {
+          "id": "users-web",
+          "from": "users",
+          "to": "web"
+        },
+        {
+          "id": "web-db",
+          "from": "web",
+          "to": "db"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1,
+      "cost": 1,
+      "security": 2,
+      "operations": 2,
+      "sustainability": 0.5
+    },
+    "hints": ["Select the database: backup retention and public accessibility are both settings."],
+    "act": 2,
+    "seed": 1024
+  },
+  {
+    "id": "2-5",
+    "index": 5,
+    "boss": true,
+    "title": "Boss: Don't Lose a Single Order",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "Friday dinner rush is going to be our biggest night ever. Our server has been flaky all week. Build it properly from scratch: whatever happens, we cannot lose a single order, and the site must stay fast.",
+    "lesson": "A server will die eventually. With data in RDS, a crash costs minutes of downtime instead of your business. Alarms make recovery faster.",
+    "budget": 130,
+    "traffic": {
+      "peakRps": 160,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.35,
+        "write": 0.15
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "crash",
+        "type": "instance_crash",
+        "atMinute": 1170,
+        "target": "random",
+        "warning": false,
+        "title": "Server crash at peak",
+        "lesson": "Without monitoring you find out from customers. A CloudWatch alarm with a recover action brings an instance back in minutes."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "noDataLoss"
+      },
+      {
+        "type": "availability",
+        "min": 0.98
+      },
+      {
+        "type": "p95",
+        "maxMs": 300
+      },
+      {
+        "type": "config",
+        "check": "backups"
+      },
+      {
+        "type": "noSecurityIssues"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront", "rds"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 2,
+      "performance": 1,
+      "cost": 1,
+      "security": 1,
+      "operations": 1,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Turn on CloudWatch alarms for the server: an alarm-triggered recovery takes 3 minutes instead of 10."
+    ],
+    "act": 2,
+    "seed": 1025
+  }
+]

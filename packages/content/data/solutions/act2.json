@@ -1,0 +1,371 @@
+{
+  "2-1": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.small",
+          "az": "a",
+          "securityGroup": "web-only"
+        },
+        "label": "Web server"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      }
+    ]
+  },
+  "2-2": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.micro",
+          "az": "a",
+          "securityGroup": "web-only"
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.t3.micro",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      },
+      {
+        "id": "web-db",
+        "from": "web",
+        "to": "db"
+      }
+    ]
+  },
+  "2-3": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.medium",
+          "az": "a",
+          "securityGroup": "web-only"
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.t3.medium",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      },
+      {
+        "id": "web-db",
+        "from": "web",
+        "to": "db"
+      }
+    ]
+  },
+  "2-4": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.medium",
+          "az": "a",
+          "securityGroup": "web-only",
+          "alarms": true
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.t3.medium",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      },
+      {
+        "id": "web-db",
+        "from": "web",
+        "to": "db"
+      }
+    ]
+  },
+  "2-5": {
+    "nodes": [
+      {
+        "id": "users",
+        "kind": "users",
+        "x": 0,
+        "y": 220,
+        "config": {},
+        "label": "Customers",
+        "locked": true
+      },
+      {
+        "id": "cdn",
+        "kind": "cloudfront",
+        "x": 260,
+        "y": 60,
+        "config": {
+          "ttlSeconds": 86400
+        }
+      },
+      {
+        "id": "assets",
+        "kind": "s3",
+        "x": 520,
+        "y": 60,
+        "config": {},
+        "label": "Assets bucket"
+      },
+      {
+        "id": "web",
+        "kind": "ec2",
+        "x": 520,
+        "y": 260,
+        "config": {
+          "size": "t3.medium",
+          "az": "a",
+          "securityGroup": "web-only",
+          "alarms": true
+        },
+        "label": "Web server"
+      },
+      {
+        "id": "db",
+        "kind": "rds",
+        "x": 800,
+        "y": 300,
+        "config": {
+          "size": "db.t3.medium",
+          "backupRetentionDays": 7,
+          "publiclyAccessible": false,
+          "az": "a"
+        },
+        "label": "Orders DB"
+      }
+    ],
+    "edges": [
+      {
+        "id": "users-cdn",
+        "from": "users",
+        "to": "cdn"
+      },
+      {
+        "id": "cdn-assets",
+        "from": "cdn",
+        "to": "assets"
+      },
+      {
+        "id": "users-web",
+        "from": "users",
+        "to": "web"
+      },
+      {
+        "id": "web-db",
+        "from": "web",
+        "to": "db"
+      }
+    ]
+  }
+}

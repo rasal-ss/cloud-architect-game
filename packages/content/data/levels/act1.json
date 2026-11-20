@@ -1,0 +1,442 @@
+[
+  {
+    "id": "1-1",
+    "index": 1,
+    "title": "Hello, World Wide Web",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "Hey! I'm launching NimbusCart this weekend: a tiny grocery-delivery site for my neighbourhood. About ten people will try it. Can you get it online? Keep it cheap, please. This is coming out of my own pocket.",
+    "lesson": "An EC2 instance is a virtual server in the cloud. Drag one onto the canvas, connect your customers to it, and you are live.",
+    "budget": 15,
+    "traffic": {
+      "peakRps": 3,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.4,
+        "write": 0.1
+      },
+      "userLatencyMs": 60,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.99
+      },
+      {
+        "type": "p95",
+        "maxMs": 300
+      }
+    ],
+    "palette": ["ec2"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1,
+      "cost": 2,
+      "security": 0,
+      "operations": 0,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Drag an EC2 instance from the palette, then drag from the Customers handle to the server to connect them."
+    ],
+    "act": 1,
+    "seed": 1011
+  },
+  {
+    "id": "1-2",
+    "index": 2,
+    "title": "Lock the Front Door",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "Two problems. Every time the server restarts it gets a new IP address and my domain stops working. And a friend scanned it and says SSH is open to the whole internet! Can you fix both?",
+    "lesson": "An Elastic IP gives a server a fixed public address. A security group is a firewall: open only the ports your users need (80/443), never SSH to 0.0.0.0/0.",
+    "budget": 20,
+    "traffic": {
+      "peakRps": 3,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.5,
+        "read": 0.4,
+        "write": 0.1
+      },
+      "userLatencyMs": 60,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "config",
+        "check": "elasticIp"
+      },
+      {
+        "type": "noSecurityIssues"
+      },
+      {
+        "type": "availability",
+        "min": 0.99
+      }
+    ],
+    "palette": ["ec2"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "web",
+          "kind": "ec2",
+          "x": 520,
+          "y": 260,
+          "config": {
+            "size": "t3.micro",
+            "az": "a",
+            "securityGroup": "open-all",
+            "elasticIp": false
+          },
+          "label": "Web server"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-web",
+          "from": "users",
+          "to": "web"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1,
+      "cost": 1,
+      "security": 2,
+      "operations": 0,
+      "sustainability": 0.5
+    },
+    "hints": ["Click the web server and look at its security group and Elastic IP settings."],
+    "act": 1,
+    "seed": 1012
+  },
+  {
+    "id": "1-3",
+    "index": 3,
+    "title": "Images Belong in S3",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "People love the product photos, so I added lots more. Now the site crawls at dinner time. Is the server really spending all its time sending pictures?",
+    "lesson": "Servers are expensive places to keep files. S3 stores and serves images without any server, and frees your EC2 instance for real work.",
+    "budget": 25,
+    "traffic": {
+      "peakRps": 25,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.7,
+        "read": 0.25,
+        "write": 0.05
+      },
+      "userLatencyMs": 60,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "p95",
+        "maxMs": 250
+      },
+      {
+        "type": "availability",
+        "min": 0.99
+      },
+      {
+        "type": "uses",
+        "kind": "s3"
+      }
+    ],
+    "palette": ["ec2", "s3"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "web",
+          "kind": "ec2",
+          "x": 520,
+          "y": 260,
+          "config": {
+            "size": "t3.micro",
+            "az": "a",
+            "securityGroup": "web-only",
+            "elasticIp": true
+          },
+          "label": "Web server"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-web",
+          "from": "users",
+          "to": "web"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1.5,
+      "cost": 1.5,
+      "security": 0.5,
+      "operations": 0,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Connect Customers straight to an S3 bucket: image requests go to S3, page requests still go to the server."
+    ],
+    "act": 1,
+    "seed": 1013
+  },
+  {
+    "id": "1-4",
+    "index": 4,
+    "title": "Closer to Customers",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "A European food blog wrote about us! But customers abroad say photos take forever to load. And my security friend is unhappy that the bucket is public. Can we make it fast everywhere and lock the bucket?",
+    "lesson": "CloudFront caches files at edge locations near your users, and with Origin Access Control the bucket can stay private. A longer cache TTL means more requests are answered at the edge.",
+    "budget": 25,
+    "traffic": {
+      "peakRps": 25,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.7,
+        "read": 0.25,
+        "write": 0.05
+      },
+      "userLatencyMs": 160,
+      "noise": 0.05
+    },
+    "objectives": [
+      {
+        "type": "p95",
+        "maxMs": 60,
+        "requestType": "static"
+      },
+      {
+        "type": "noSecurityIssues"
+      },
+      {
+        "type": "availability",
+        "min": 0.99
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        },
+        {
+          "id": "web",
+          "kind": "ec2",
+          "x": 520,
+          "y": 260,
+          "config": {
+            "size": "t3.micro",
+            "az": "a",
+            "securityGroup": "web-only",
+            "elasticIp": true
+          },
+          "label": "Web server"
+        },
+        {
+          "id": "assets",
+          "kind": "s3",
+          "x": 520,
+          "y": 60,
+          "config": {},
+          "label": "Assets bucket"
+        }
+      ],
+      "edges": [
+        {
+          "id": "users-web",
+          "from": "users",
+          "to": "web"
+        },
+        {
+          "id": "users-assets",
+          "from": "users",
+          "to": "assets"
+        }
+      ]
+    },
+    "weights": {
+      "reliability": 1,
+      "performance": 1.5,
+      "cost": 1,
+      "security": 1.5,
+      "operations": 0,
+      "sustainability": 0.5
+    },
+    "hints": [
+      "Put CloudFront between Customers and the bucket, then remove the direct Customers → S3 connection.",
+      "Every cache miss travels all the way to the bucket. Product photos rarely change: try a longer CloudFront TTL."
+    ],
+    "act": 1,
+    "seed": 1014
+  },
+  {
+    "id": "1-5",
+    "index": 5,
+    "boss": true,
+    "title": "Boss: Launch Day on $20",
+    "from": "Maya, founder of NimbusCart",
+    "brief": "It's official launch day! The local news is featuring us at 6 pm, and I have exactly $20 a month for hosting. Start from a clean slate and please don't let it fall over.",
+    "lesson": "Offloading static files to CloudFront and S3 lets the smallest server survive a spike. Good architecture beats a bigger budget.",
+    "budget": 20,
+    "traffic": {
+      "peakRps": 6,
+      "curve": [
+        [0, 0.15],
+        [3, 0.08],
+        [6, 0.2],
+        [9, 0.5],
+        [12, 0.8],
+        [14, 0.6],
+        [17, 0.7],
+        [19.5, 1],
+        [21, 0.8],
+        [24, 0.15]
+      ],
+      "mix": {
+        "static": 0.7,
+        "read": 0.25,
+        "write": 0.05
+      },
+      "userLatencyMs": 80,
+      "noise": 0.05
+    },
+    "incidents": [
+      {
+        "id": "news",
+        "type": "traffic_spike",
+        "atMinute": 1080,
+        "multiplier": 8,
+        "rampMinutes": 10,
+        "holdMinutes": 60,
+        "warning": true,
+        "title": "Evening news feature",
+        "lesson": "Spikes are predictable more often than you think. Static content served from the edge costs almost nothing to scale."
+      }
+    ],
+    "objectives": [
+      {
+        "type": "availability",
+        "min": 0.99
+      },
+      {
+        "type": "p95",
+        "maxMs": 400
+      },
+      {
+        "type": "noSecurityIssues"
+      }
+    ],
+    "palette": ["ec2", "s3", "cloudfront"],
+    "startingDesign": {
+      "nodes": [
+        {
+          "id": "users",
+          "kind": "users",
+          "x": 0,
+          "y": 220,
+          "config": {},
+          "label": "Customers",
+          "locked": true
+        }
+      ],
+      "edges": []
+    },
+    "weights": {
+      "reliability": 1.5,
+      "performance": 1,
+      "cost": 2,
+      "security": 1,
+      "operations": 0,
+      "sustainability": 0.5
+    },
+    "hints": ["A bigger server blows the budget. What if the server never saw the image requests at all?"],
+    "act": 1,
+    "seed": 1015
+  }
+]

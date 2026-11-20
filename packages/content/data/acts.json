@@ -1,0 +1,5 @@
+[
+  { "act": 1, "title": "Hello Cloud", "stage": "Founder's weekend project", "scale": "10 users" },
+  { "act": 2, "title": "First Database", "stage": "First paying customers", "scale": "1k users" },
+  { "act": 3, "title": "Growing Pains", "stage": "Featured on the app store", "scale": "50k users" }
+]
