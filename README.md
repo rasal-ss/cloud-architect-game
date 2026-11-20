@@ -9,7 +9,7 @@ _"Factorio meets the AWS Well-Architected Framework."_
 ![Terraform](https://img.shields.io/badge/IaC-Terraform-7b42bc)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-**▶ Live demo:** _coming soon_ (deployed to CloudFront by the [Deploy workflow](.github/workflows/deploy.yml))
+**▶ Live demo:** _coming soon on Netlify_
 
 ![A 10x traffic spike hitting an auto-scaled fleet: traffic dots flow from customers through the load balancer, the fleet has scaled to 8 instances, and the timeline shows the spike and an instance crash](docs/screenshots/spike.png)
 
@@ -23,11 +23,11 @@ dinner time. A report card scores you on the six pillars of the Well-Architected
 This repository is a portfolio piece for DevOps, AWS Cloud and Tech Lead roles. It shows the same skills three
 ways:
 
-| Layer                  | What it demonstrates                                                                                                                                          |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **The game's content** | System design knowledge: scaling, high availability, CDNs, right-sizing, data durability, security groups, health checks, alarms and cost trade-offs          |
-| **The game's code**    | A deterministic simulation engine with queueing, autoscaling and failure models; a graph editor; data-driven content validated by schemas; 98 automated tests |
-| **The game's hosting** | Serverless AWS with Terraform (dev and prod), GitHub Actions with OIDC (no long-lived keys), least-privilege IAM, alarms, dashboards and a budget alert       |
+| Layer                         | What it demonstrates                                                                                                                                                                                                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **The game's content**        | System design knowledge: scaling, high availability, CDNs, right-sizing, data durability, security groups, health checks, alarms and cost trade-offs                                                                                                        |
+| **The game's code**           | A deterministic simulation engine with queueing, autoscaling and failure models; a graph editor; data-driven content validated by schemas; 98 automated tests                                                                                               |
+| **The game's infrastructure** | Production-ready AWS infrastructure as code: serverless Terraform for dev and prod, GitHub Actions with OIDC (no long-lived keys), least-privilege IAM, alarms, dashboards and a budget alert. Validated in CI, not deployed: the live demo runs on Netlify |
 
 ## Play
 
@@ -47,8 +47,13 @@ Chaos events: **traffic spikes** and **instance crashes**.
 
 ## Architecture
 
-The simulation runs entirely in the player's browser, in a Web Worker. The backend only stores progress, shared
-designs and leaderboards, so the AWS bill stays near zero when nobody is playing.
+The simulation runs entirely in the player's browser, in a Web Worker, so the game needs nothing but static
+hosting. **The live demo is a static site on Netlify**, and progress is saved in the browser.
+
+The diagram below is the **target AWS architecture** for the cloud features (sign-in, cloud saves, shared designs
+and leaderboards). It is fully defined in [infra/terraform](infra/terraform) and the API code is built and
+tested, but it is **not deployed**: Terraform is checked with `fmt` and `validate` in CI. The design keeps the
+bill near zero when nobody is playing, because the backend only stores progress, designs and leaderboards.
 
 ```mermaid
 flowchart LR
@@ -98,31 +103,33 @@ flowchart TB
     web[apps/web<br/>React, React Flow, Zustand]
     worker[Web Worker]
     api[services/api<br/>Lambda handlers]
-    infra[infra/terraform<br/>bootstrap, modules, dev, prod]
+    infra[infra/terraform<br/>bootstrap, modules, dev, prod<br/>validated, not deployed]
+    netlify[Netlify<br/>live demo]
 
     content --> engine
     engine --> worker --> web
     content --> web
     engine --> api
     content --> api
-    api -. bundled and deployed by .-> infra
-    web -. uploaded to S3 by CI .-> infra
+    web -->|static build| netlify
+    api -. would be deployed by .-> infra
 ```
 
 ## Tech stack
 
-| Area           | Choice                                                                                       |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| Monorepo       | pnpm workspaces, TypeScript (strict), ESLint, Prettier                                       |
-| Frontend       | React 19, Vite 6, React Flow 12 for the canvas, Zustand for state                            |
-| Simulation     | `packages/engine`: pure TypeScript, runs in a Web Worker, Node.js and Lambda                 |
-| Content        | JSON validated with zod schemas at load time; reference solutions per level                  |
-| Backend        | API Gateway HTTP API, Lambda (Node.js 22, arm64), DynamoDB single-table design               |
-| Auth           | Cognito with PKCE (optional Google sign-in); the game is fully playable as a guest           |
-| Infrastructure | Terraform 1.11, reusable modules, dev and prod, S3 remote state with native lock files       |
-| CI/CD          | GitHub Actions: lint, typecheck, tests, build, `terraform validate`; plan and apply via OIDC |
-| Observability  | CloudWatch alarms and dashboard, X-Ray tracing, API access logs, AWS Budgets alert           |
-| Testing        | Vitest across engine, content, API and web; level solvability tests run in CI                |
+| Area           | Choice                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Monorepo       | pnpm workspaces, TypeScript (strict), ESLint, Prettier                                                                   |
+| Frontend       | React 19, Vite 6, React Flow 12 for the canvas, Zustand for state                                                        |
+| Simulation     | `packages/engine`: pure TypeScript, runs in a Web Worker, Node.js and Lambda                                             |
+| Content        | JSON validated with zod schemas at load time; reference solutions per level                                              |
+| Backend        | API Gateway HTTP API, Lambda (Node.js 22, arm64), DynamoDB single-table design                                           |
+| Auth           | Cognito with PKCE (optional Google sign-in); the game is fully playable as a guest                                       |
+| Hosting        | Netlify for the live demo (static build, configured in `netlify.toml`)                                                   |
+| Infrastructure | Terraform 1.11 for AWS, reusable modules, dev and prod, S3 remote state with native lock files (validated, not deployed) |
+| CI/CD          | GitHub Actions: lint, typecheck, tests, build, `terraform validate`; plan and apply via OIDC                             |
+| Observability  | CloudWatch alarms and dashboard, X-Ray tracing, API access logs, AWS Budgets alert                                       |
+| Testing        | Vitest across engine, content, API and web; level solvability tests run in CI                                            |
 
 ## How the simulation works
 
@@ -184,26 +191,39 @@ apps/web/              Game client: canvas, palette, inspector, playback, report
 packages/engine/       Simulation engine and scoring (UI-free, deterministic)
 packages/content/      Service catalogue, campaign levels and reference solutions (JSON + zod)
 services/api/          Lambda handlers: progress (server-verified), shared designs, leaderboards
-infra/terraform/       Bootstrap, reusable modules, dev and prod environments
-.github/workflows/     CI and Deploy (Terraform plan/apply with GitHub OIDC)
+infra/terraform/       AWS infrastructure as code: bootstrap, reusable modules, dev and prod (not deployed)
+.github/workflows/     CI, plus an AWS Deploy workflow that stays inactive until AWS is configured
+netlify.toml           Netlify build and headers for the live demo
 docs/GAME_DESIGN.md    The full game design document
 ```
 
 ## Deployment
 
-Infrastructure is Terraform, deployed by GitHub Actions with short-lived credentials from GitHub OIDC. Pull
-requests get a `terraform plan`; merges to `main` deploy `dev`; `prod` is a manual run behind an approval. See
-[infra/terraform/README.md](infra/terraform/README.md) for the one-time bootstrap and the cost guard rails.
+### Live demo: Netlify
+
+The game is deployed to Netlify as a static site. Import the repository in Netlify and it picks up
+[`netlify.toml`](netlify.toml): it builds `apps/web` with pnpm on Node.js 22 and publishes `apps/web/dist`.
+Every push to `main` redeploys, and pull requests get preview links. Hashed assets are cached for a year and
+`index.html` is always revalidated.
+
+### AWS infrastructure (not deployed)
+
+[`infra/terraform`](infra/terraform) defines the full AWS hosting for the cloud features: CloudFront and S3,
+API Gateway and Lambda, DynamoDB, Cognito, CloudWatch alarms and a budget alert, for dev and prod. The
+[Deploy workflow](.github/workflows/deploy.yml) would plan and apply it with short-lived GitHub OIDC credentials
+(no stored AWS keys), with prod behind a manual approval. It stays inactive, and costs nothing, until the AWS
+repository variables are set. CI still checks every Terraform module with `fmt` and `validate`. See
+[infra/terraform/README.md](infra/terraform/README.md) for how it would be set up.
 
 ## Roadmap
 
-| Phase | Name                     | Scope                                                                                                                                                                                     | Status      |
-| ----- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| 1     | **Prototype**            | Simulation engine, canvas, 8 services, traffic spike and instance crash, report card, Acts 1-3 (15 levels), sandbox                                                                       | ✅ Done     |
-| 2     | **Core game**            | Acts 4-7: read replicas and caching, Multi-AZ RDS, serverless (Lambda, API Gateway, DynamoDB, RDS Proxy), SQS/SNS/Step Functions; more incidents (AZ outage, failover, connection storms) | Next        |
-| 3     | **Data Architect mode**  | Second campaign: schema designer, Query Lab with execution plans, transactions, DynamoDB key design board, polyglot persistence                                                           | Planned     |
-| 4     | **Cloud backend launch** | Sign-in with Cognito, cloud saves, shared design links, server-verified leaderboards, daily challenges (backend already built)                                                            | Infra ready |
-| 5     | **Expansion**            | Acts 8-15 (security, analytics, CI/CD, multi-region, AI, the IPO), **Export to Terraform**, Incident Response and Cost Crusher modes                                                      | Planned     |
+| Phase | Name                     | Scope                                                                                                                                                                                     | Status  |
+| ----- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1     | **Prototype**            | Simulation engine, canvas, 8 services, traffic spike and instance crash, report card, Acts 1-3 (15 levels), sandbox                                                                       | ✅ Done |
+| 2     | **Core game**            | Acts 4-7: read replicas and caching, Multi-AZ RDS, serverless (Lambda, API Gateway, DynamoDB, RDS Proxy), SQS/SNS/Step Functions; more incidents (AZ outage, failover, connection storms) | Next    |
+| 3     | **Data Architect mode**  | Second campaign: schema designer, Query Lab with execution plans, transactions, DynamoDB key design board, polyglot persistence                                                           | Planned |
+| 4     | **Cloud backend launch** | Sign-in with Cognito, cloud saves, shared design links, server-verified leaderboards, daily challenges (API and Terraform built and tested, not deployed)                                 | Built   |
+| 5     | **Expansion**            | Acts 8-15 (security, analytics, CI/CD, multi-region, AI, the IPO), **Export to Terraform**, Incident Response and Cost Crusher modes                                                      | Planned |
 
 The full vision is in the [game design document](docs/GAME_DESIGN.md).
 
