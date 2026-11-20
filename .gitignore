@@ -16,3 +16,7 @@ crash.log
 *.auto.tfvars
 !*.auto.tfvars.example
 terraform.tfvars
+
+# Terraform build artefacts and local backend config
+**/.build/
+backend.hcl

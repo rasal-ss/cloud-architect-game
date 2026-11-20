@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars (git-ignored). Secrets go in TF_VAR_* environment variables, not here.
+region      = "eu-west-2"
+alert_email = "you@example.com"
+# google_client_id = "1234.apps.googleusercontent.com"
