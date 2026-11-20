@@ -1,0 +1,24 @@
+{
+  "name": "@cloud-architect/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Lambda handlers for progress, shared designs and leaderboards on a DynamoDB single-table design",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1000.0",
+    "@aws-sdk/lib-dynamodb": "^3.1000.0",
+    "@cloud-architect/content": "workspace:*",
+    "@cloud-architect/engine": "workspace:*",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.150",
+    "@types/node": "^22.15.0",
+    "esbuild": "^0.25.5"
+  }
+}
