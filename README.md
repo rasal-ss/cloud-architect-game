@@ -4,7 +4,7 @@
 
 _"Factorio meets the AWS Well-Architected Framework."_
 
-[![CI](https://github.com/YOUR_GITHUB_USER/cloud-architect-game/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USER/cloud-architect-game/actions/workflows/ci.yml)
+[![CI](https://github.com/rasal-ss/cloud-architect-game/actions/workflows/ci.yml/badge.svg)](https://github.com/rasal-ss/cloud-architect-game/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Terraform](https://img.shields.io/badge/IaC-Terraform-7b42bc)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
