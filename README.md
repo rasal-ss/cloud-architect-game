@@ -43,6 +43,11 @@ Services in Phase 1: **EC2, Auto Scaling Groups, ALB, CloudFront, S3, RDS, RDS r
 (replicas and caching are available in the sandbox and unlock in the campaign in Act 4).
 Chaos events: **traffic spikes** and **instance crashes**.
 
+**No AWS experience needed.** A built-in service guide explains the basics (requests, load, latency,
+availability, Availability Zones, cost) and gives every component an everyday analogy, how it behaves in the
+game, and when to use it or avoid it. New components get a short introduction the first time a level unlocks
+them, and the first level opens with a three-step "how to play".
+
 ![Report card for the boss level: availability of 99.48% just misses the 99.5% target. The card shows pillar scores, a cost breakdown, the fleet as the bottleneck at 220% load, hints and a post-mortem timeline](docs/screenshots/report.png)
 
 ## Architecture
