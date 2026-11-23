@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Level, acts, concepts, levels, services } from '../src';
+import { Level, acts, concepts, course, getLevel, lessonFor, lessons, levels, services } from '../src';
 import { solutions } from '../src/solutions';
 
 describe('service catalogue', () => {
@@ -109,6 +109,34 @@ describe('reference solutions', () => {
       for (const n of solutions[l.id]!.nodes) {
         // Locked nodes (customers, the payment provider) are placed by the level itself.
         if (n.kind !== 'users' && !n.locked) expect(l.palette, `${l.id} uses ${n.kind}`).toContain(n.kind);
+      }
+    }
+  });
+});
+
+describe('beginner course', () => {
+  it('has unique lesson ids and links only to real levels', () => {
+    expect(new Set(lessons.map((l) => l.id)).size).toBe(lessons.length);
+    for (const l of lessons)
+      for (const id of l.practice) expect(getLevel(id), `${l.id} -> ${id}`).toBeDefined();
+  });
+
+  it('teaches every service except customers in some lesson', () => {
+    for (const s of services) if (s.kind !== 'users') expect(lessonFor(s.kind), s.kind).toBeDefined();
+  });
+
+  it('gives every lesson an everyday analogy, a technical explanation and a quiz with valid answers', () => {
+    expect(course.length).toBeGreaterThanOrEqual(7);
+    for (const l of lessons) {
+      const types = l.blocks.map((b) => b.type);
+      expect(types, l.id).toContain('everyday');
+      expect(types, l.id).toContain('text');
+      expect(types, l.id).toContain('quiz');
+      for (const b of l.blocks) {
+        if (b.type === 'quiz')
+          for (const q of b.questions) expect(q.answer, q.question).toBeLessThan(q.options.length);
+        if (b.type === 'compare')
+          for (const r of b.rows) expect(r.values.length, `${l.id}: ${r.label}`).toBe(b.columns.length);
       }
     }
   });

@@ -364,3 +364,77 @@ export const Act = z.object({
   scale: z.string(),
 });
 export type Act = z.infer<typeof Act>;
+
+// ---------------------------------------------------------------------------
+// The beginner course
+// ---------------------------------------------------------------------------
+
+/** One step in a lesson diagram: a service, or a plain label such as "Your phone". */
+const DiagramNode = z.object({
+  kind: ServiceKind.optional(),
+  label: z.string(),
+  note: z.string().optional(),
+});
+
+export const LessonBlock = z.discriminatedUnion('type', [
+  /** The idea explained with something from daily life first. */
+  z.object({ type: z.literal('everyday'), title: z.string(), text: z.string() }),
+  /** The technical explanation. Paragraphs are separated by blank lines. */
+  z.object({ type: z.literal('text'), title: z.string().optional(), text: z.string() }),
+  /** A left-to-right flow of components. */
+  z.object({ type: z.literal('diagram'), caption: z.string(), nodes: z.array(DiagramNode).min(2) }),
+  /** A worked example with numbers. */
+  z.object({ type: z.literal('example'), title: z.string(), text: z.string() }),
+  /** A side-by-side comparison. */
+  z.object({
+    type: z.literal('compare'),
+    title: z.string(),
+    /** Headers for the value columns. */
+    columns: z.array(z.string()).min(1).max(3),
+    /** Optional header for the first column (the row labels). */
+    rowHeader: z.string().optional(),
+    rows: z.array(z.object({ label: z.string(), values: z.array(z.string()) })).min(2),
+  }),
+  z.object({
+    type: z.literal('terms'),
+    items: z.array(z.object({ term: z.string(), meaning: z.string() })).min(2),
+  }),
+  /** A short callout: a common mistake or how it works in the real world. */
+  z.object({ type: z.literal('tip'), kind: z.enum(['mistake', 'real-world']), text: z.string() }),
+  z.object({
+    type: z.literal('quiz'),
+    questions: z
+      .array(
+        z.object({
+          question: z.string(),
+          options: z.array(z.string()).min(2).max(4),
+          answer: z.number().int().min(0),
+          why: z.string(),
+        }),
+      )
+      .min(2),
+  }),
+]);
+export type LessonBlock = z.infer<typeof LessonBlock>;
+
+export const Lesson = z.object({
+  id: z.string().regex(/^[a-z0-9-]+$/),
+  title: z.string(),
+  /** One sentence shown in the course outline. */
+  summary: z.string(),
+  minutes: z.number().int().min(1).max(30),
+  /** Services this lesson teaches (used to link the game to the lesson). */
+  services: z.array(ServiceKind).default([]),
+  /** Levels to practise in afterwards. */
+  practice: z.array(z.string()).default([]),
+  blocks: z.array(LessonBlock).min(4),
+});
+export type Lesson = z.infer<typeof Lesson>;
+
+export const CourseModule = z.object({
+  id: z.string(),
+  title: z.string(),
+  summary: z.string(),
+  lessons: z.array(Lesson).min(1),
+});
+export type CourseModule = z.infer<typeof CourseModule>;

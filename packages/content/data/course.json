@@ -1,0 +1,2391 @@
+[
+  {
+    "id": "start-here",
+    "title": "Start here: the web and the cloud",
+    "summary": "What really happens when you open a website, and what \"the cloud\" means.",
+    "lessons": [
+      {
+        "id": "how-websites-work",
+        "title": "What happens when you open a website",
+        "summary": "Clients, servers, requests and responses: the conversation behind every click.",
+        "minutes": 8,
+        "services": [],
+        "practice": ["1-1"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "Ordering at a restaurant",
+            "text": "You sit down, read the menu and tell the waiter what you want. The waiter walks to the kitchen, the kitchen cooks, and the waiter brings your plate back.\n\nYou never see the kitchen. You don't know how many cooks there are or where the fridge is. You only see the request you made and the dish that arrived.\n\nA website works the same way. Your phone or laptop is the diner, the internet is the walk to the kitchen, and a computer somewhere else, called a server, is the kitchen."
+          },
+          {
+            "type": "text",
+            "text": "Every time you tap a link, your device (the client) sends a message called a request across the internet. A request says what you want, such as \"give me the page for organic tomatoes\" or \"save this order\".\n\nA computer called a server receives it, does some work, and sends back a response: a web page, an image, or a short message like \"order saved\".\n\nOne page you see is usually many requests. The page itself is one; each image, font and script is another. A single visit to an online shop can easily be 50 requests.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "One request, from your phone to a server and back",
+            "nodes": [
+              {
+                "label": "Your phone",
+                "note": "the client"
+              },
+              {
+                "label": "The internet",
+                "note": "a few milliseconds to a few hundred"
+              },
+              {
+                "label": "A server",
+                "kind": "ec2",
+                "note": "does the work"
+              },
+              {
+                "label": "A database",
+                "kind": "rds",
+                "note": "remembers things"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": "To find the server, your device first asks the internet's phone book, called DNS (Domain Name System), to turn a name like nimbuscart.com into a numeric address (an IP address). Then it connects to that address.\n\nServers often need to remember things between requests: who you are, what is in your basket, which orders exist. They keep that in a database, a program built for storing and finding data safely. The server asks the database, then answers you.",
+            "title": "Finding the server and remembering things"
+          },
+          {
+            "type": "example",
+            "title": "A single tap at NimbusCart",
+            "text": "Maya opens the NimbusCart app and taps \"Tomatoes\".\n\n1. Her phone sends a request: GET /products/tomatoes.\n2. The server looks up tomatoes in the database: price, stock, description.\n3. The server builds a response and sends it back. That took 120 milliseconds (ms), about a tenth of a second.\n4. The app then sends 12 more requests for the product photos.\n\nThe game counts each of these as a request: the page view is a read, the photos are files, and placing an order is a write."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Client",
+                "meaning": "The device asking for something: a phone, laptop or another program."
+              },
+              {
+                "term": "Server",
+                "meaning": "A computer that answers requests."
+              },
+              {
+                "term": "Request / response",
+                "meaning": "The question sent to a server, and its answer."
+              },
+              {
+                "term": "DNS",
+                "meaning": "The internet’s phone book: turns names into IP addresses."
+              },
+              {
+                "term": "Database",
+                "meaning": "Software that stores data so it can be found and updated safely."
+              },
+              {
+                "term": "Latency",
+                "meaning": "How long a request takes, usually in milliseconds (ms). 1,000 ms = 1 second."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Thinking a website is one thing. It is many requests to several kinds of components, and each kind can be handled by a different service."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "You open a product page with 8 photos. Roughly how many requests does your phone send?",
+                "options": ["1", "About 9", "Exactly 8"],
+                "answer": 1,
+                "why": "One request for the page and one for each photo, so about 9 (often more for scripts and fonts)."
+              },
+              {
+                "question": "Where does a server usually keep orders so it can find them later?",
+                "options": ["In the response", "In a database", "On the customer’s phone"],
+                "answer": 1,
+                "why": "Servers use a database to store and look up data safely between requests."
+              },
+              {
+                "question": "What does DNS do?",
+                "options": ["Encrypts the page", "Turns a website name into an address", "Stores images"],
+                "answer": 1,
+                "why": "DNS is the internet’s phone book: it finds the numeric address for a name like nimbuscart.com."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "what-is-the-cloud",
+        "title": "What \"the cloud\" and AWS are",
+        "summary": "Renting computers instead of buying them, and how AWS is organised around the world.",
+        "minutes": 9,
+        "services": [],
+        "practice": [],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "Buying a car vs taking a taxi",
+            "text": "If you buy a car you pay a lot up front, pay for insurance and repairs, and it sits in the drive most of the day. A taxi costs more per mile, but you only pay when you ride, and someone else fixes it.\n\nRunning your own servers is like owning cars: you buy machines, put them in a building with power and cooling, and replace them when they break. The cloud is like taxis on demand: you rent computing power by the hour (or even per request) from a company that runs huge data centres, and give it back when you don't need it."
+          },
+          {
+            "type": "text",
+            "text": "Amazon Web Services (AWS) is the largest cloud provider. It offers over 200 services, but they come down to a few families: computers that run your code (compute), places to keep data (storage and databases), networking that gets requests to the right place, and services that connect your pieces together (messaging).\n\nYou rent these through a website or code, and they are ready in seconds or minutes. You pay for what you use: an hour of a server, a gigabyte stored for a month, a million requests.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "text",
+            "text": "AWS runs data centres all over the world, grouped into Regions such as London (eu-west-2) or Mumbai (ap-south-1). You choose where your system runs, usually close to your customers.\n\nEach Region contains several Availability Zones (AZs): groups of data centres a few miles apart, each with its own power, cooling and network. They are close enough to copy data between them almost instantly, and far enough apart that a fire or power cut in one doesn't affect the others. Spreading your system over two zones is the most important habit for staying online.",
+            "title": "Regions and Availability Zones"
+          },
+          {
+            "type": "diagram",
+            "caption": "How AWS is laid out",
+            "nodes": [
+              {
+                "label": "A Region",
+                "note": "e.g. London"
+              },
+              {
+                "label": "Availability Zone A",
+                "note": "separate power and network"
+              },
+              {
+                "label": "Availability Zone B",
+                "note": "a few miles away"
+              },
+              {
+                "label": "Your servers",
+                "kind": "ec2",
+                "note": "in one zone or spread over both"
+              }
+            ]
+          },
+          {
+            "type": "compare",
+            "title": "Owning servers vs renting from the cloud",
+            "columns": ["Your own servers", "The cloud"],
+            "rows": [
+              {
+                "label": "Cost up front",
+                "values": ["Buy machines months ahead", "Nothing; pay as you go"]
+              },
+              {
+                "label": "Getting more",
+                "values": ["Order hardware, wait weeks", "Click or code, ready in minutes"]
+              },
+              {
+                "label": "Quiet times",
+                "values": ["Machines sit idle, still paid for", "Scale down and pay less"]
+              },
+              {
+                "label": "When hardware breaks",
+                "values": ["You fix it", "AWS replaces it"]
+              },
+              {
+                "label": "What you still own",
+                "values": ["Everything", "Your design, code, data and settings"]
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "NimbusCart’s first month",
+            "text": "Maya could buy a server for about $1,500 and pay for a rack in a data centre. Instead she rents a small server from AWS for about $7.60 a month. When NimbusCart is featured on the app store, she adds more servers in minutes, and removes them again at night.\n\nThe trade-off: renting the same big server all day, every day, for years would eventually cost more than buying it. The cloud wins when you need flexibility, speed and someone else to handle the hardware."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Cloud provider",
+                "meaning": "A company that rents out computing, storage and networking: AWS, Microsoft Azure, Google Cloud."
+              },
+              {
+                "term": "Region",
+                "meaning": "A geographic area with AWS data centres, such as London."
+              },
+              {
+                "term": "Availability Zone (AZ)",
+                "meaning": "One or more data centres inside a Region, isolated from the others."
+              },
+              {
+                "term": "Pay as you go",
+                "meaning": "Paying per hour, per gigabyte or per request instead of up front."
+              },
+              {
+                "term": "Managed service",
+                "meaning": "AWS runs the software for you (patching, backups, failover), as with RDS or SQS."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "real-world",
+            "text": "AWS is responsible for the security of the cloud (buildings, hardware, its own software). You are responsible for security in the cloud: who can access your servers, whether your data is encrypted, whether your buckets are private. This is called the shared responsibility model."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Why spread your system over two Availability Zones?",
+                "options": [
+                  "It is cheaper",
+                  "A problem in one zone won’t take everything down",
+                  "It makes pages load faster"
+                ],
+                "answer": 1,
+                "why": "Zones have separate power and networks, so one can fail while the other keeps running."
+              },
+              {
+                "question": "Which is the best reason to use the cloud for a new startup?",
+                "options": [
+                  "It is always cheaper forever",
+                  "You can start small and grow quickly without buying hardware",
+                  "You no longer need to think about security"
+                ],
+                "answer": 1,
+                "why": "Pay-as-you-go and fast scaling are the big wins. Security is still partly your job, and long-term costs depend on usage."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "reading-the-game",
+        "title": "Load, latency, availability and cost",
+        "summary": "The four numbers the game shows you, and what they mean for real customers.",
+        "minutes": 8,
+        "services": [],
+        "practice": ["1-1", "2-3"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A supermarket checkout",
+            "text": "A checkout can scan about 20 shoppers an hour. At 10 shoppers an hour the cashier is relaxed and nobody waits. At 18 an hour a short queue forms. At 25 an hour the queue grows and grows, people give up and leave their trolleys.\n\nThat is exactly how a server behaves. Its capacity is how much it can do. Load is how much it is being asked to do. Waiting time (latency) rises gently at first, then sharply near the limit. And customers who give up are failed requests."
+          },
+          {
+            "type": "text",
+            "text": "Load is the share of a component’s capacity in use. Under about 80% everything is fast. Between 80% and 100% requests start waiting for each other, so latency climbs quickly. Above 100% there is more work than the component can do, and the extra requests fail.\n\nLatency is how long a request takes. The game reports p95: the time that 95% of requests beat. Averages hide the slow ones; p95 shows what your unluckiest regular customers feel.\n\nAvailability is the share of requests that succeeded. 99.9% sounds perfect, but it allows about 43 minutes of failures a month.\n\nCost per month is what your design would cost if every day looked like this one.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "compare",
+            "title": "What availability really allows",
+            "columns": ["Failures allowed per month"],
+            "rows": [
+              {
+                "label": "99%",
+                "values": ["About 7 hours"]
+              },
+              {
+                "label": "99.9%",
+                "values": ["About 43 minutes"]
+              },
+              {
+                "label": "99.99%",
+                "values": ["About 4 minutes"]
+              },
+              {
+                "label": "99.999%",
+                "values": ["About 26 seconds"]
+              }
+            ],
+            "rowHeader": "Availability"
+          },
+          {
+            "type": "example",
+            "title": "Reading a run",
+            "text": "At 19:30 NimbusCart’s server shows 92% load (amber), p95 latency 310 ms and 0 errors. It is coping, but close to the edge: one more burst of customers would push it over 100% and requests would start failing.\n\nYou could move to a bigger size, add a second server behind a load balancer, or take work away from it (for example, serve images from S3). Each fix has a cost, which the game adds to your monthly bill."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Capacity",
+                "meaning": "How much work a component can do per second."
+              },
+              {
+                "term": "Load (utilisation)",
+                "meaning": "How much of that capacity is in use, as a percentage."
+              },
+              {
+                "term": "p95",
+                "meaning": "The latency 95% of requests are faster than."
+              },
+              {
+                "term": "Availability",
+                "meaning": "Successful requests divided by all requests."
+              },
+              {
+                "term": "Bottleneck",
+                "meaning": "The component that runs out of capacity first and limits everything else."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Running everything at 95% load to save money. There is no room for a spike, and latency is already high. Aim for headroom: 50–70% at your normal peak."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "A server is at 85% load. What is most likely happening?",
+                "options": [
+                  "Requests are failing",
+                  "Requests are starting to wait, so latency is rising",
+                  "Nothing; it is fine until 100%"
+                ],
+                "answer": 1,
+                "why": "Latency rises sharply past about 80%, before anything fails."
+              },
+              {
+                "question": "Your p95 latency is 200 ms. What does that mean?",
+                "options": [
+                  "Every request took 200 ms",
+                  "95% of requests took 200 ms or less",
+                  "The average was 200 ms"
+                ],
+                "answer": 1,
+                "why": "p95 is the time that 95% of requests beat; 5% were slower."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "servers-and-files",
+    "title": "Servers and files",
+    "summary": "Running code on EC2, storing files on S3, and delivering them fast with CloudFront.",
+    "lessons": [
+      {
+        "id": "ec2-servers",
+        "title": "Servers in the cloud: EC2",
+        "summary": "Virtual servers you rent by the hour: sizes, firewalls, addresses, and why one is never enough.",
+        "minutes": 10,
+        "services": ["ec2"],
+        "practice": ["1-1", "1-2", "2-1"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "Renting a flat",
+            "text": "When you rent a flat you choose the size (studio or three bedrooms), you get keys, and the landlord handles the building. You can furnish it however you like. If you need more space you move to a bigger flat, which takes time and costs more.\n\nAn EC2 instance is a rented flat for your code. You choose the size, you have full control inside it, and AWS looks after the building: the physical machines, power and network."
+          },
+          {
+            "type": "text",
+            "text": "Amazon EC2 (Elastic Compute Cloud) gives you virtual servers called instances. One physical machine in an AWS data centre is split into many isolated virtual machines, and you rent one of them.\n\nYou choose an instance type, which sets how many CPUs and how much memory you get. Names follow a pattern: the family, then the size. t3 is general purpose and cheap; c7g is built for heavy computation. Sizes go micro, small, medium, large, xlarge, and each step up roughly doubles capacity and price.\n\nYou also choose an operating system (usually Linux), install your web application, and it runs until you stop it. You pay for every hour it runs, whether busy or idle.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "text",
+            "text": "Each instance sits behind a security group: a firewall that decides which network ports are open. A website needs ports 80 (HTTP) and 443 (HTTPS) open to everyone. Port 22 (SSH, for logging in) should only ever be open to your own address, never to the whole internet, because bots scan for it constantly.\n\nAn instance gets a public IP address, but it changes if the instance is stopped and started. An Elastic IP is a fixed address you keep, so your domain name always points to the right place.",
+            "title": "Firewalls and addresses"
+          },
+          {
+            "type": "diagram",
+            "caption": "A simple website on one EC2 instance",
+            "nodes": [
+              {
+                "label": "Customers",
+                "kind": "users"
+              },
+              {
+                "label": "Security group",
+                "note": "only 80 and 443 open"
+              },
+              {
+                "label": "Web server",
+                "kind": "ec2",
+                "note": "t3.micro"
+              },
+              {
+                "label": "Database on the same disk",
+                "note": "risky"
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "Picking a size for NimbusCart",
+            "text": "In the game a t3.micro can do 40 units of work per second for $7.60 a month. A product page costs 1 unit, an order 1.5, and an image 2 (images are heavy to send).\n\nAt dinner NimbusCart gets 25 requests per second: 17 images, 6 page views and 2 orders. Before counting any database work, that is 17×2 + 6×1 + 2×1.5 = 43 units: already over capacity, so some requests fail. Moving to a t3.small (80 units, $15.20) fixes it. So does moving the images to S3, which brings the load to 9 units and keeps the cheap instance."
+          },
+          {
+            "type": "compare",
+            "title": "Scaling up vs scaling out",
+            "columns": ["Bigger instance (vertical)", "More instances (horizontal)"],
+            "rows": [
+              {
+                "label": "How",
+                "values": ["Change the instance type", "Add instances behind a load balancer"]
+              },
+              {
+                "label": "Limit",
+                "values": ["The largest size available", "Practically none"]
+              },
+              {
+                "label": "If one fails",
+                "values": ["The whole site is down", "The others carry on"]
+              },
+              {
+                "label": "Effort",
+                "values": ["Easy, needs a restart", "Needs stateless servers and a load balancer"]
+              }
+            ]
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Instance",
+                "meaning": "One virtual server."
+              },
+              {
+                "term": "Instance type",
+                "meaning": "Its size and family, like t3.micro."
+              },
+              {
+                "term": "Security group",
+                "meaning": "A firewall around an instance that allows or blocks ports."
+              },
+              {
+                "term": "Port",
+                "meaning": "A numbered door on a server: 443 for HTTPS, 22 for SSH."
+              },
+              {
+                "term": "Elastic IP",
+                "meaning": "A fixed public address you keep across restarts."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Keeping the database on the same instance as the website. It competes for CPU, and if the instance dies, every order is gone with it. The next modules fix this."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Which security group setting is safe for a public website?",
+                "options": [
+                  "Open every port to everyone",
+                  "Open 80 and 443 to everyone, SSH only to your own address",
+                  "Close every port"
+                ],
+                "answer": 1,
+                "why": "Customers need 80/443. SSH open to the world invites attacks; closing everything makes the site unreachable."
+              },
+              {
+                "question": "Your instance’s address changes after a restart and your domain stops working. What fixes it?",
+                "options": ["A bigger instance", "An Elastic IP", "A second Availability Zone"],
+                "answer": 1,
+                "why": "An Elastic IP stays the same across restarts."
+              },
+              {
+                "question": "Why is one big instance riskier than two small ones?",
+                "options": ["It is slower", "If it fails, nothing else can take over", "It costs more"],
+                "answer": 1,
+                "why": "One instance is a single point of failure. Two behind a load balancer can survive the loss of one."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "s3-storage",
+        "title": "Storing files: S3",
+        "summary": "Object storage for images, videos and backups: almost unlimited, very durable, and no server to run.",
+        "minutes": 8,
+        "services": ["s3"],
+        "practice": ["1-3"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A self-storage warehouse",
+            "text": "A storage warehouse doesn’t care what is in your boxes. You give it a box with a label, it stores it safely, and when you show the label it brings the box back. You never think about shelves or forklifts, and you pay for the space you use.\n\nAmazon S3 is a warehouse for files. Each file is stored under a name (a key), and you can fetch it by that name from anywhere on the internet if you allow it."
+          },
+          {
+            "type": "text",
+            "text": "Amazon S3 (Simple Storage Service) stores objects: a file plus some information about it. Objects live in buckets, which are like top-level folders with globally unique names.\n\nS3 is designed for 99.999999999% (eleven nines) durability. It keeps copies of every object in several Availability Zones automatically. Losing a file stored in S3 is far less likely than losing a laptop.\n\nS3 can serve files directly over HTTPS, so images and videos don’t need to pass through your servers at all. That saves your servers’ CPU and bandwidth for the work only they can do.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "Images served by S3 instead of the web server",
+            "nodes": [
+              {
+                "label": "Customers",
+                "kind": "users"
+              },
+              {
+                "label": "Assets bucket",
+                "kind": "s3",
+                "note": "images and scripts"
+              },
+              {
+                "label": "Web server",
+                "kind": "ec2",
+                "note": "pages and orders only"
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "Moving NimbusCart’s photos",
+            "text": "NimbusCart has 2,000 product photos, about 400 KB each: 800 MB in total. Stored on S3 that costs a few cents a month.\n\nBefore: 70% of all requests were photos, using most of the server’s CPU. After moving them to S3, the server only handles pages and orders, and its load drops from over 100% to about 50%."
+          },
+          {
+            "type": "text",
+            "text": "Buckets are private by default, and they should stay that way. Making a bucket public so customers can download from it is one of the most common causes of data leaks, because people later put things in it that were never meant to be public.\n\nThe safe pattern is to keep the bucket private and put CloudFront (next lesson) in front of it. CloudFront is given permission to read the bucket; nobody else is.",
+            "title": "Keep buckets private"
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Bucket",
+                "meaning": "A container for objects, with a unique name."
+              },
+              {
+                "term": "Object",
+                "meaning": "A file plus metadata, found by its key."
+              },
+              {
+                "term": "Key",
+                "meaning": "The object’s name, like photos/tomatoes.jpg."
+              },
+              {
+                "term": "Durability",
+                "meaning": "How unlikely data loss is."
+              },
+              {
+                "term": "Storage class",
+                "meaning": "Cheaper tiers for data you rarely read, such as Glacier for archives."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Making a bucket public to serve images. It works, but anything later put in that bucket is public too. Use CloudFront with Origin Access Control instead."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Why move images from a web server to S3?",
+                "options": [
+                  "S3 makes images smaller",
+                  "It frees the server’s CPU and bandwidth for pages and orders",
+                  "Servers can’t store images"
+                ],
+                "answer": 1,
+                "why": "Images are the heaviest requests. S3 serves them without your servers."
+              },
+              {
+                "question": "What is the safest way to let customers download images from S3?",
+                "options": [
+                  "Make the bucket public",
+                  "Keep it private and serve it through CloudFront",
+                  "Email them the files"
+                ],
+                "answer": 1,
+                "why": "A private bucket read only by CloudFront avoids accidental leaks."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "cloudfront-cdn",
+        "title": "Getting closer to customers: CloudFront",
+        "summary": "How a content delivery network copies files near your customers, and what TTL means.",
+        "minutes": 9,
+        "services": ["cloudfront"],
+        "practice": ["1-4", "1-5"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "Corner shops vs the central warehouse",
+            "text": "A supermarket chain keeps most stock in one big warehouse, but you don’t drive there for milk. Your local branch keeps the popular things on its shelves. If it runs out of something, it orders more from the warehouse.\n\nCloudFront is a chain of local branches for your files. It has hundreds of edge locations around the world. Each keeps copies of your popular files, so customers fetch them from nearby instead of from your Region, which might be on another continent."
+          },
+          {
+            "type": "text",
+            "text": "When a customer requests an image through CloudFront, the nearest edge location checks whether it has a fresh copy. If it does (a cache hit), it answers in a few milliseconds. If not (a cache miss), it fetches the file from your origin, usually an S3 bucket, keeps a copy, and answers.\n\nHow long a copy is kept is the TTL (time to live). With a one-day TTL a popular photo is fetched from the origin about once a day per edge location, and every other request is a hit. With a one-minute TTL, edges keep going back to the origin.\n\nCloudFront also protects your origin. A spike in traffic to the same images is absorbed by the edges.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "A photo request through CloudFront",
+            "nodes": [
+              {
+                "label": "Customer in Paris",
+                "kind": "users"
+              },
+              {
+                "label": "Edge in Paris",
+                "kind": "cloudfront",
+                "note": "hit: about 10 ms"
+              },
+              {
+                "label": "Origin bucket in London",
+                "kind": "s3",
+                "note": "only on a miss"
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "Why the TTL matters",
+            "text": "A customer 160 ms away from the AWS Region loads a product photo.\n\nWithout CloudFront: about 160 ms + 25 ms = 185 ms.\nWith CloudFront and a hit: about 18 ms.\nWith CloudFront and a miss: about 140 ms.\n\nWith a 1-hour TTL roughly 91% of requests are hits. That sounds good, but the slowest 9% are misses, so the p95 (the 95th fastest of every 100) is a miss: about 140 ms. With a 1-day TTL about 97% are hits, and the p95 drops to about 18 ms. That is the lesson in level 1-4."
+          },
+          {
+            "type": "compare",
+            "title": "Short vs long TTL",
+            "columns": ["Short TTL (1 minute)", "Long TTL (1 day)"],
+            "rows": [
+              {
+                "label": "Hit ratio",
+                "values": ["Lower", "Higher"]
+              },
+              {
+                "label": "Speed for customers",
+                "values": ["More slow misses", "Mostly fast hits"]
+              },
+              {
+                "label": "Load on the origin",
+                "values": ["Higher", "Lower"]
+              },
+              {
+                "label": "How quickly changes appear",
+                "values": ["Within a minute", "Up to a day later (unless you invalidate)"]
+              },
+              {
+                "label": "Good for",
+                "values": ["Things that change often", "Images, scripts, styles"]
+              }
+            ]
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "CDN",
+                "meaning": "Content delivery network: servers around the world that cache your files."
+              },
+              {
+                "term": "Edge location",
+                "meaning": "A CloudFront site near customers."
+              },
+              {
+                "term": "Origin",
+                "meaning": "Where the original files live."
+              },
+              {
+                "term": "Cache hit / miss",
+                "meaning": "Whether the edge already had a copy."
+              },
+              {
+                "term": "TTL",
+                "meaning": "How long a cached copy is kept."
+              },
+              {
+                "term": "Invalidation",
+                "meaning": "Telling CloudFront to throw away copies early after a change."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "real-world",
+            "text": "Sites usually put a version number or a hash in file names (app.3f9a.js). A new release gets a new name, so you can use very long TTLs and still see changes immediately."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "What happens on a cache miss?",
+                "options": [
+                  "The request fails",
+                  "The edge fetches the file from the origin and keeps a copy",
+                  "The customer is sent to another country"
+                ],
+                "answer": 1,
+                "why": "Misses go to the origin; the edge stores a copy for next time."
+              },
+              {
+                "question": "Your product photos almost never change. Which TTL suits them?",
+                "options": ["1 minute", "1 day", "No caching"],
+                "answer": 1,
+                "why": "Long TTLs give the most hits for files that rarely change."
+              },
+              {
+                "question": "Why might p95 latency stay high even with a 90% hit ratio?",
+                "options": [
+                  "Hits are slow",
+                  "The slowest 10% are misses, and p95 lands among them",
+                  "CloudFront adds latency to every request"
+                ],
+                "answer": 1,
+                "why": "If more than 5% of requests are slow misses, p95 measures a miss."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "data",
+    "title": "Keeping data safe",
+    "summary": "Databases, backups, standbys, replicas, caches and NoSQL.",
+    "lessons": [
+      {
+        "id": "rds-databases",
+        "title": "Databases: RDS",
+        "summary": "Why data belongs in a managed database, what SQL and transactions are, and how to size one.",
+        "minutes": 11,
+        "services": ["rds"],
+        "practice": ["2-2", "2-3"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A records office",
+            "text": "Imagine a council records office. Clerks keep every record in labelled filing cabinets, follow strict procedures so two people can’t edit the same file at once, and make copies every night in case of a flood.\n\nA relational database is that office for your app. Amazon RDS (Relational Database Service) is like hiring a company to run the office for you: they hire the clerks, buy the cabinets, take the nightly copies and replace a clerk who calls in sick. You decide what goes in the files."
+          },
+          {
+            "type": "text",
+            "text": "A relational database stores data in tables, like spreadsheets with strict columns. NimbusCart has a customers table, a products table and an orders table. Rows in one table point to rows in another: each order has a customer_id. You ask questions in SQL (Structured Query Language), for example: SELECT * FROM orders WHERE customer_id = 42.\n\nRelational databases support transactions: several changes that all happen or none do. Taking payment and reducing stock must happen together; a transaction guarantees you never charge for a tomato you no longer have.\n\nRDS runs popular databases such as PostgreSQL and MySQL. AWS installs and patches them, takes automated backups, and can keep a standby copy in another Availability Zone.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "Servers talking to a separate database",
+            "nodes": [
+              {
+                "label": "Customers",
+                "kind": "users"
+              },
+              {
+                "label": "Web server",
+                "kind": "ec2",
+                "note": "can be replaced at any time"
+              },
+              {
+                "label": "Orders database",
+                "kind": "rds",
+                "note": "keeps the data safe"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Keeping the database on the web server is tempting for a tiny site, but it causes two problems. The database competes with the website for CPU, so both slow down. And when that one machine fails, the data goes with it.\n\nWith a separate database, servers become replaceable. A server can crash and restart, or be swapped for a bigger one, and no order is lost.",
+            "title": "Why not keep the database on the server?"
+          },
+          {
+            "type": "example",
+            "title": "The crash that didn’t matter",
+            "text": "At 14:00 NimbusCart’s web server crashes.\n\nWith the database on the server, 11,000 orders taken that day were stored on its disk and are gone (level 2-2’s starting design).\n\nWith RDS, the server is back in 10 minutes. Customers saw errors for those minutes, but every order is still in the database."
+          },
+          {
+            "type": "text",
+            "text": "Each database size can do a certain amount of work and hold a certain number of open connections. Reads (looking things up) are cheap; writes (saving orders) cost more because the database must store them safely.\n\nRight-sizing means choosing the smallest size that keeps peak load comfortably below about 80%. Too small and requests fail; too big and you pay for capacity you never use.",
+            "title": "Sizing a database"
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Table / row / column",
+                "meaning": "A table holds rows (records); each row has the same columns."
+              },
+              {
+                "term": "SQL",
+                "meaning": "The language for asking relational databases questions."
+              },
+              {
+                "term": "Transaction",
+                "meaning": "Several changes that succeed or fail together."
+              },
+              {
+                "term": "Managed database",
+                "meaning": "AWS handles installation, patching and backups."
+              },
+              {
+                "term": "Connection",
+                "meaning": "An open line between a program and the database. Each database has a limit."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Making the database publicly accessible from the internet. Only your servers need to reach it; keep it in a private network."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Why move the database off the web server?",
+                "options": [
+                  "Databases need a different operating system",
+                  "So a server crash doesn’t lose data, and the two don’t fight over CPU",
+                  "It makes SQL faster to write"
+                ],
+                "answer": 1,
+                "why": "Separating them protects data and frees CPU."
+              },
+              {
+                "question": "Charging a customer and reducing stock must both happen or neither. Which feature guarantees that?",
+                "options": ["A transaction", "A cache", "A bigger instance"],
+                "answer": 0,
+                "why": "Transactions make several changes succeed or fail together."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "backups-and-failover",
+        "title": "Backups, standbys and disasters",
+        "summary": "The difference between a backup and a standby, and how to measure what a disaster costs.",
+        "minutes": 10,
+        "services": [],
+        "practice": ["2-4", "5-1", "5-3"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A spare key and a photo album",
+            "text": "A spare house key hidden with a neighbour gets you back in within minutes if you lose yours. But it is no help if a fire destroys your photos: for that you need copies stored somewhere else, from before the fire.\n\nA standby database is the spare key: if the main database breaks, the standby takes over almost immediately. A backup is the photo album: a copy of your data as it was at an earlier time, so you can go back to before a mistake."
+          },
+          {
+            "type": "text",
+            "text": "RDS Multi-AZ keeps a standby copy of your database in a second Availability Zone. Every write is copied to it before the write is confirmed (synchronous replication), so the standby is always up to date. If the primary fails, AWS switches to the standby in about a minute. No data is lost.\n\nAutomated backups take a daily snapshot and also save the transaction log every few minutes. Together they allow point-in-time recovery: restoring the database to any second in the last few days. Restoring takes time, though, and anything written after the restore point is lost.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "compare",
+            "title": "Multi-AZ vs backups",
+            "columns": ["Multi-AZ standby", "Automated backups"],
+            "rows": [
+              {
+                "label": "Protects against",
+                "values": ["Hardware failure, a zone going down", "Mistakes, bugs, deleted data, ransomware"]
+              },
+              {
+                "label": "Recovery time",
+                "values": ["About a minute, automatic", "Tens of minutes, you start it"]
+              },
+              {
+                "label": "Data lost",
+                "values": ["None", "Up to about 5 minutes"]
+              },
+              {
+                "label": "A dropped table",
+                "values": ["The standby drops it too", "Restore to just before"]
+              },
+              {
+                "label": "Cost",
+                "values": ["About double the database", "A few dollars a month"]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": "Two numbers describe how bad a disaster can be. RPO (recovery point objective) is how much data you can afford to lose, measured in time: \"at most 5 minutes of orders\". RTO (recovery time objective) is how long you can afford to be down: \"back within 30 minutes\".\n\nMulti-AZ gives a short RTO for hardware failures. Backups give a small RPO for mistakes. Serious systems use both.",
+            "title": "RPO and RTO"
+          },
+          {
+            "type": "example",
+            "title": "Two disasters at NimbusCart",
+            "text": "Tuesday 19:00: the primary database’s hardware fails. With Multi-AZ, the standby takes over by 19:01. Customers see about a minute of errors. Without Multi-AZ, the site is down for about 20 minutes during the busiest hour.\n\nThursday 15:00: an engineer runs a cleanup script and deletes the orders table. Multi-AZ copies the deletion to the standby instantly. Backups restore the database to 14:55: 20 minutes of downtime, 5 minutes of orders to re-enter from the payment provider. Without backups, every order ever taken is gone."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Standby",
+                "meaning": "An up-to-date copy ready to take over."
+              },
+              {
+                "term": "Failover",
+                "meaning": "Switching from the failed primary to the standby."
+              },
+              {
+                "term": "Snapshot",
+                "meaning": "A full copy of the database at one moment."
+              },
+              {
+                "term": "Point-in-time recovery",
+                "meaning": "Restoring to any moment in the backup window."
+              },
+              {
+                "term": "RPO / RTO",
+                "meaning": "How much data you can lose / how long you can be down."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Turning off backups because \"we have Multi-AZ\". Multi-AZ faithfully copies your mistakes."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Someone deletes a table by accident. What recovers it?",
+                "options": ["Multi-AZ", "Automated backups with point-in-time recovery", "A read replica"],
+                "answer": 1,
+                "why": "Standbys and replicas copy the deletion. Only a backup from before the mistake brings it back."
+              },
+              {
+                "question": "Your contract says you can lose at most 5 minutes of data. Which number is that?",
+                "options": ["RTO", "RPO", "p95"],
+                "answer": 1,
+                "why": "RPO is how much data (in time) you can afford to lose."
+              },
+              {
+                "question": "What does Multi-AZ mainly improve?",
+                "options": [
+                  "How quickly you recover from hardware or zone failure",
+                  "Read performance",
+                  "Protection from bad scripts"
+                ],
+                "answer": 0,
+                "why": "It is an automatic standby for failures, recovering in about a minute."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "replicas-and-caching",
+        "title": "More reads: replicas and caching",
+        "summary": "Two ways to answer far more questions without a bigger database, and the price you pay in freshness.",
+        "minutes": 12,
+        "services": ["rds_replica", "elasticache"],
+        "practice": ["4-1", "4-2", "4-3", "4-5"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "The library and the sticky note",
+            "text": "A popular library has one copy of a reference book and a queue of readers. It can buy photocopies so several people can read at once (replicas). It can also notice that everyone asks the librarian the same question, \"what time do you close?\", and stick the answer on the door (a cache).\n\nBoth help, but both can go out of date. If the book is revised, the photocopies are old until they are reprinted. If the closing time changes, the sticky note is wrong until someone updates it."
+          },
+          {
+            "type": "text",
+            "text": "Most applications read far more than they write. NimbusCart customers view a product page about ten times for every order.\n\nA read replica is a copy of the database that receives every change from the primary a moment later (asynchronous replication). Servers send reads to replicas and writes to the primary. Two replicas can take most of the read load away from the primary. Replicas never help with writes, because every copy must apply every write.\n\nA cache such as Amazon ElastiCache keeps answers in memory, so a read takes about a millisecond instead of a trip to the database. With the cache-aside pattern, the server checks the cache first. On a hit it uses the cached answer; on a miss it asks the database and stores the answer in the cache with a TTL.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "Cache-aside with a replica behind it",
+            "nodes": [
+              {
+                "label": "Web servers",
+                "kind": "asg"
+              },
+              {
+                "label": "Cache",
+                "kind": "elasticache",
+                "note": "about 1 ms on a hit"
+              },
+              {
+                "label": "Read replica",
+                "kind": "rds_replica",
+                "note": "answers misses"
+              },
+              {
+                "label": "Primary database",
+                "kind": "rds",
+                "note": "handles orders"
+              }
+            ]
+          },
+          {
+            "type": "compare",
+            "title": "Replicas vs a cache",
+            "columns": ["Read replica", "Cache (ElastiCache)"],
+            "rows": [
+              {
+                "label": "Speed",
+                "values": ["A few ms, like the primary", "About 1 ms"]
+              },
+              {
+                "label": "How out of date",
+                "values": ["Usually under a second (replication lag)", "Up to one TTL"]
+              },
+              {
+                "label": "Can answer anything",
+                "values": ["Yes, any query", "Only what was cached"]
+              },
+              {
+                "label": "Starts empty",
+                "values": ["No", "Yes, warms up over time"]
+              },
+              {
+                "label": "Cost in the game",
+                "values": ["Same as a database instance", "About $12 for a small cache"]
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "Fresh enough?",
+            "text": "With a 1-hour TTL, 94% of NimbusCart’s product reads come from the cache. But stock levels must be at most a minute old, or customers buy tomatoes that sold out 40 minutes ago.\n\nWith a 30-second TTL the data is fresh, but only about 57% of reads hit the cache. The other 43% go to the database, so a read replica is needed behind the cache to cope. Freshness costs capacity. That trade-off is level 4-3."
+          },
+          {
+            "type": "text",
+            "text": "Replicas lag more when the primary is busy, because it falls behind sending changes. Caches start empty after a restart, so the first minutes send every read to the database: a cache stampede. Plan capacity for both.",
+            "title": "Two things that bite"
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Read replica",
+                "meaning": "A read-only copy updated asynchronously."
+              },
+              {
+                "term": "Replication lag",
+                "meaning": "How far behind the primary a replica is."
+              },
+              {
+                "term": "Cache-aside",
+                "meaning": "Check the cache, read the database on a miss, then fill the cache."
+              },
+              {
+                "term": "Hit ratio",
+                "meaning": "Share of reads answered from the cache."
+              },
+              {
+                "term": "Stale data",
+                "meaning": "An answer that was correct when cached but may have changed."
+              },
+              {
+                "term": "Cache stampede",
+                "meaning": "A cold cache sending everything to the database at once."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Reading data that must be current, such as a payment status, from a replica or cache. Send those reads to the primary."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Your database is overloaded by writes. Will read replicas help?",
+                "options": [
+                  "Yes, they share the writes",
+                  "No, every replica must apply every write too",
+                  "Only if there are three"
+                ],
+                "answer": 1,
+                "why": "Replicas add read capacity, never write capacity."
+              },
+              {
+                "question": "Which setting makes cached data fresher but sends more reads to the database?",
+                "options": ["A shorter TTL", "A longer TTL", "A bigger cache"],
+                "answer": 0,
+                "why": "Shorter TTLs expire answers sooner, so more reads miss."
+              },
+              {
+                "question": "Right after a deploy empties the cache, what happens?",
+                "options": ["Nothing", "Most reads miss and hit the database at once", "Reads fail"],
+                "answer": 1,
+                "why": "That is a cache stampede; the database needs room to absorb it."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "dynamodb-nosql",
+        "title": "NoSQL with DynamoDB",
+        "summary": "A database that scales without limits if you design your keys well, and why one popular key can still break it.",
+        "minutes": 11,
+        "services": ["dynamodb"],
+        "practice": ["6-1", "6-3", "6-5"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A wall of lockers",
+            "text": "A station has thousands of numbered lockers. If you know your locker number, you get your bag instantly, however busy the station is, because everyone goes to a different locker. But you can’t ask \"show me every red bag\": the lockers only know numbers.\n\nAnd if a thousand people all need locker 7 at once, they queue at locker 7 while the rest stand empty. That is a hot key."
+          },
+          {
+            "type": "text",
+            "text": "Amazon DynamoDB is a NoSQL key-value database. Instead of tables with joins and SQL, you store items and fetch them by key. Every item has a partition key, and DynamoDB spreads items across many partitions (storage nodes) by that key.\n\nBecause requests are spread over partitions, DynamoDB can handle almost any amount of traffic, answer in a few milliseconds, and needs no servers or connections. That makes it a natural partner for Lambda.\n\nThe catch: each partition has a limit. If many requests share the same key, they all land on one partition and are throttled, even though the table as a whole has plenty of room.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "compare",
+            "title": "Relational (RDS) vs NoSQL (DynamoDB)",
+            "columns": ["RDS (SQL)", "DynamoDB (NoSQL)"],
+            "rows": [
+              {
+                "label": "Ask questions",
+                "values": ["Any query with SQL, joins across tables", "By key, in patterns you designed for"]
+              },
+              {
+                "label": "Scaling",
+                "values": ["Bigger instance, replicas", "Almost unlimited, automatically"]
+              },
+              {
+                "label": "Connections",
+                "values": ["Limited per instance", "None to manage"]
+              },
+              {
+                "label": "Transactions",
+                "values": ["Rich, across many tables", "Supported, more limited"]
+              },
+              {
+                "label": "Best for",
+                "values": ["Orders, payments, reports", "Carts, sessions, high-scale lookups"]
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "The viral coupon",
+            "text": "NimbusCart stores coupon redemptions with the coupon code as the partition key, which made the marketing report easy.\n\nThen a celebrity shares code FREESHIP and 70% of all orders use it. All those writes target one partition. It can take about 500 units a second in the game; at the dinner peak the coupon alone needs about 560. Orders are throttled while the rest of the table sits idle.\n\nTwo fixes: key by order ID (millions of different values), or keep the code but add a random suffix, FREESHIP#1 to FREESHIP#10, so the load spreads over ten partitions. That second trick is called write sharding."
+          },
+          {
+            "type": "text",
+            "text": "On-demand capacity charges per request and adapts to traffic automatically: ideal for spiky or unknown workloads. Provisioned capacity charges for a fixed amount of reads and writes per second: cheaper for steady traffic, but anything above it is throttled.",
+            "title": "On-demand or provisioned"
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Item",
+                "meaning": "One record, fetched by its key."
+              },
+              {
+                "term": "Partition key",
+                "meaning": "The attribute that decides which partition stores an item."
+              },
+              {
+                "term": "Hot partition",
+                "meaning": "One key getting far more traffic than the rest."
+              },
+              {
+                "term": "Throttling",
+                "meaning": "Requests rejected because a limit was hit."
+              },
+              {
+                "term": "Write sharding",
+                "meaning": "Adding a suffix to spread one hot key over several partitions."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Choosing a partition key with few distinct values, such as today’s date or a status like \"pending\". Every request lands on the same few partitions."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Which partition key spreads traffic best?",
+                "options": ["Order date", "Order ID", "Order status"],
+                "answer": 1,
+                "why": "Order IDs are all different, so requests spread over many partitions."
+              },
+              {
+                "question": "One coupon code gets most of the traffic and must stay in the key. What helps?",
+                "options": [
+                  "A bigger table",
+                  "Write sharding: add a suffix like #1 to #10",
+                  "Switching to provisioned capacity"
+                ],
+                "answer": 1,
+                "why": "Sharding splits one hot key across several partitions."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "traffic-and-failure",
+    "title": "More traffic, fewer outages",
+    "summary": "Load balancers, Auto Scaling, stateless servers and surviving a lost data centre.",
+    "lessons": [
+      {
+        "id": "load-balancers",
+        "title": "Load balancers and redundancy",
+        "summary": "Putting several servers behind one front door, and noticing when one of them breaks.",
+        "minutes": 9,
+        "services": ["alb"],
+        "practice": ["3-1", "3-4"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "The receptionist at a busy clinic",
+            "text": "A clinic has three doctors. Patients don’t pick a door at random; a receptionist sends each one to the next free doctor. If a doctor goes home ill, the receptionist simply stops sending patients to that room.\n\nAn Application Load Balancer (ALB) is that receptionist. Customers only ever talk to the load balancer, and it decides which server handles each request."
+          },
+          {
+            "type": "text",
+            "text": "An ALB receives every request and forwards it to one of its targets, usually EC2 instances. It spreads requests according to how much each target can take.\n\nIt also runs health checks: every few seconds it sends a test request to each target. If a target stops answering, the load balancer takes it out of rotation within seconds and sends traffic only to healthy targets. When the target recovers, it is added back.\n\nThe ALB itself runs in several Availability Zones, so it isn’t a single point of failure. That is redundancy: having more than one of anything that can fail.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "Two servers behind a load balancer, in two zones",
+            "nodes": [
+              {
+                "label": "Customers",
+                "kind": "users"
+              },
+              {
+                "label": "Load balancer",
+                "kind": "alb",
+                "note": "health checks every few seconds"
+              },
+              {
+                "label": "Server in zone A",
+                "kind": "ec2"
+              },
+              {
+                "label": "Server in zone B",
+                "kind": "ec2"
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "Sizing for one failure",
+            "text": "NimbusCart needs 135 units of work per second at dinner. Two t3.medium servers (160 units each) share it at about 42% load each.\n\nAt 19:45 one crashes. The health check notices within a minute and the survivor takes everything: 135 of 160 units, 84% load. Busy, but fine. If each server had been a t3.small (80 units), the survivor would be at 170% and drop requests. Size so that the remaining servers can carry the load when one is lost."
+          },
+          {
+            "type": "compare",
+            "title": "With and without health checks",
+            "columns": ["Health checks on", "Health checks off"],
+            "rows": [
+              {
+                "label": "A server dies",
+                "values": ["Removed within about a minute", "Keeps getting its share of customers"]
+              },
+              {
+                "label": "Customers affected",
+                "values": ["Those mid-request at the moment it died", "Half of everyone, until it recovers"]
+              },
+              {
+                "label": "In level 3-4",
+                "values": ["Availability above 99.9%", "About 99.7%"]
+              }
+            ]
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Load balancer",
+                "meaning": "One entry point that spreads requests across servers."
+              },
+              {
+                "term": "Target",
+                "meaning": "A server the load balancer can send traffic to."
+              },
+              {
+                "term": "Health check",
+                "meaning": "A regular test request; failing targets are skipped."
+              },
+              {
+                "term": "Redundancy",
+                "meaning": "Extra copies so one failure doesn’t cause an outage."
+              },
+              {
+                "term": "Single point of failure",
+                "meaning": "A part whose failure takes everything down."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Putting two servers behind a load balancer but sizing them so each needs the other. When one fails, the survivor is overloaded."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "What does a health check do?",
+                "options": [
+                  "Restarts servers every night",
+                  "Tests each server regularly so broken ones stop getting traffic",
+                  "Checks the code for bugs"
+                ],
+                "answer": 1,
+                "why": "The load balancer only routes to targets that pass."
+              },
+              {
+                "question": "You need 300 units at peak and must survive losing one server. Which fleet works?",
+                "options": [
+                  "Two servers of 160 units",
+                  "Three servers of 160 units",
+                  "One server of 400 units"
+                ],
+                "answer": 1,
+                "why": "Three of 160 leaves 320 after one failure. Two leaves 160; one big server leaves nothing."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "auto-scaling",
+        "title": "Auto Scaling and stateless servers",
+        "summary": "A fleet that grows and shrinks with demand, why it needs warm-up time, and where logins should live.",
+        "minutes": 11,
+        "services": ["asg"],
+        "practice": ["3-2", "3-5", "5-2"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "Staffing a coffee shop",
+            "text": "A coffee shop needs one barista at 6 a.m. and five at 8 a.m. A good manager watches the queue and calls in staff when it grows, and sends people home when it shrinks. But a new barista needs a few minutes to arrive and put an apron on, so a smart manager calls them before the queue is out of the door.\n\nAn Auto Scaling Group is that manager for your servers."
+          },
+          {
+            "type": "text",
+            "text": "An Auto Scaling Group (ASG) runs a fleet of identical EC2 instances. You set a minimum, a maximum and a target, such as \"keep average CPU around 60%\". When load goes above the target the group launches instances; when it falls well below, it removes them after a cooldown.\n\nA new instance takes a few minutes to boot and pass health checks before it can help. Sudden spikes arrive faster than that, so you keep headroom: a lower target (say 50%), a higher minimum, or scheduled scaling before known events.\n\nThe group also heals itself: if an instance fails, it is replaced automatically.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "text",
+            "text": "Because the group adds and removes instances at any time, instances must be stateless: nothing important may live only on one of them. That includes logged-in sessions and shopping baskets.\n\nIf sessions are kept in a server’s memory, removing or losing that server logs those customers out and empties their baskets. Keep sessions in a shared store such as ElastiCache instead, and any server can serve any customer.",
+            "title": "Stateless servers"
+          },
+          {
+            "type": "diagram",
+            "caption": "A fleet with sessions in a shared cache",
+            "nodes": [
+              {
+                "label": "Load balancer",
+                "kind": "alb"
+              },
+              {
+                "label": "Auto Scaling Group",
+                "kind": "asg",
+                "note": "2 to 8 instances"
+              },
+              {
+                "label": "Sessions cache",
+                "kind": "elasticache",
+                "note": "any server can read them"
+              },
+              {
+                "label": "Database",
+                "kind": "rds"
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "Following the daily curve",
+            "text": "At 4 a.m. NimbusCart needs one instance’s worth of capacity; at dinner it needs five. A fixed fleet of five t3.medium instances costs about $150 a month and sits mostly idle. A group with min 2, max 8 and a 60% target averages about 2.5 instances: roughly $80.\n\nAt 12:00 a celebrity post sends 10 times the traffic in 3 minutes. Instances need 3 minutes to start. With a 60% target the fleet is overloaded for those minutes; with a 50% target and bigger instances, the existing headroom absorbs the first wave. That is the level 3-5 boss."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Auto Scaling Group",
+                "meaning": "A self-managing fleet of identical instances."
+              },
+              {
+                "term": "Target tracking",
+                "meaning": "A rule like \"keep average CPU at 60%\"."
+              },
+              {
+                "term": "Warm-up",
+                "meaning": "Time before a new instance can take traffic."
+              },
+              {
+                "term": "Headroom",
+                "meaning": "Spare capacity kept for sudden spikes."
+              },
+              {
+                "term": "Stateless",
+                "meaning": "Keeping nothing important on one server, so it can be removed at any time."
+              },
+              {
+                "term": "Session",
+                "meaning": "What the site remembers about a logged-in customer."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "A 90% target to save money. There is no room while new instances boot, so every spike causes errors."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Why keep a lower target utilisation, such as 50%?",
+                "options": [
+                  "It is cheaper",
+                  "It leaves headroom while new instances warm up",
+                  "Instances run faster"
+                ],
+                "answer": 1,
+                "why": "Spikes arrive faster than instances boot; headroom absorbs the gap."
+              },
+              {
+                "question": "A server is removed and its customers are logged out. What was wrong?",
+                "options": [
+                  "The load balancer",
+                  "Sessions were stored on the server instead of a shared store",
+                  "The database size"
+                ],
+                "answer": 1,
+                "why": "Stateless servers keep sessions in a shared store such as ElastiCache."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "designing-for-failure",
+        "title": "Designing for failure",
+        "summary": "Single points of failure, Availability Zones, and what a whole data centre going dark looks like.",
+        "minutes": 9,
+        "services": [],
+        "practice": ["5-4", "5-5"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A hospital’s backup generator",
+            "text": "A hospital can’t stop working when the power fails. It has a backup generator, two independent power lines, and staff trained to switch over. Nobody hopes the power will fail; they assume it will, and plan for it.\n\nCloud architects work the same way. Every component will fail eventually, so the question is never \"what if it fails?\" but \"what happens when it does?\""
+          },
+          {
+            "type": "text",
+            "text": "Start by finding single points of failure: any one component whose failure stops everything. A lone server, a database with no standby, a fleet confined to one Availability Zone.\n\nThen add redundancy in separate failure domains. Two servers in the same zone protect against one server failing, not against the zone failing. Spread the fleet over two zones, give the database a Multi-AZ standby, and make sure the half that survives can carry the full load.\n\nManaged services such as S3, DynamoDB, SQS, Lambda and the load balancer already run across zones for you.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "A design that survives losing a zone",
+            "nodes": [
+              {
+                "label": "Load balancer",
+                "kind": "alb",
+                "note": "spans both zones"
+              },
+              {
+                "label": "Fleet in zones A and B",
+                "kind": "asg",
+                "note": "half survives"
+              },
+              {
+                "label": "Database with standby",
+                "kind": "rds",
+                "note": "Multi-AZ"
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "Zone A goes dark at 19:15",
+            "text": "NimbusCart’s fleet has 6 instances across two zones and a Multi-AZ database whose primary is in zone A.\n\nWhen zone A loses power, 3 instances disappear and the primary database goes with them. Within a minute the standby in zone B takes over. The 3 surviving instances run at about 90% load (they were at 45%) while the group launches 3 replacements in zone B. Five minutes later the fleet is back to 6, and almost nobody noticed.\n\nThe same design confined to zone A would be offline for the whole hour."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Failure domain",
+                "meaning": "Things that fail together, like everything in one zone."
+              },
+              {
+                "term": "Graceful degradation",
+                "meaning": "Losing capacity or features without going fully down."
+              },
+              {
+                "term": "Blast radius",
+                "meaning": "How much is affected when something fails."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "real-world",
+            "text": "Teams practise this on purpose. \"Game days\" and chaos engineering tools switch off servers or block a zone in a controlled way to prove the system survives before a real failure does it for them."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Two servers are both in zone A. Which failure do they not survive?",
+                "options": ["One server crashing", "Zone A going down", "A traffic spike"],
+                "answer": 1,
+                "why": "Redundancy only helps if the copies don’t fail together."
+              },
+              {
+                "question": "Why run the fleet at about 45% normally, if you need to survive losing a zone?",
+                "options": [
+                  "To save money",
+                  "So the half that survives can carry everything",
+                  "Because AWS requires it"
+                ],
+                "answer": 1,
+                "why": "Losing half the fleet doubles the load on the rest."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "serverless",
+    "title": "Serverless",
+    "summary": "Running code without servers: Lambda, API Gateway, and the limits you still design for.",
+    "lessons": [
+      {
+        "id": "lambda-and-api-gateway",
+        "title": "Lambda and API Gateway",
+        "summary": "Code that runs only when called, a front door for APIs, and paying per request.",
+        "minutes": 11,
+        "services": ["lambda", "api_gateway"],
+        "practice": ["6-1"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "Ride-hailing vs owning a fleet of cars",
+            "text": "A taxi company that owns cars pays for them all day, even when nobody needs a ride. A ride-hailing app only pays drivers for each trip, and when a concert ends, hundreds of drivers appear at once.\n\nEC2 servers are the owned cars: always on, always paid for. AWS Lambda is ride-hailing for code: nothing runs until a request arrives, then as many copies as needed run in parallel, and you pay only for the time they spend working."
+          },
+          {
+            "type": "text",
+            "text": "With AWS Lambda you upload a function: a piece of code that handles one event, such as one API request or one message. When an event arrives, Lambda runs your function in an execution environment, and you pay per request and per millisecond of run time. With no traffic you pay nothing.\n\nAmazon API Gateway is the front door for APIs. It receives HTTPS requests from apps and websites, checks things like authentication and rate limits, and calls the right Lambda function.\n\nNeither needs instance sizes, operating systems or patching. Both run across every Availability Zone automatically.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "A fully serverless API",
+            "nodes": [
+              {
+                "label": "Mobile app",
+                "kind": "users"
+              },
+              {
+                "label": "API Gateway",
+                "kind": "api_gateway",
+                "note": "front door"
+              },
+              {
+                "label": "Lambda function",
+                "kind": "lambda",
+                "note": "runs per request"
+              },
+              {
+                "label": "DynamoDB table",
+                "kind": "dynamodb",
+                "note": "no connections to manage"
+              }
+            ]
+          },
+          {
+            "type": "compare",
+            "title": "EC2 vs Lambda",
+            "columns": ["EC2 / Auto Scaling", "Lambda"],
+            "rows": [
+              {
+                "label": "You pay for",
+                "values": ["Every hour it runs", "Each request and its run time"]
+              },
+              {
+                "label": "Idle cost",
+                "values": ["Full price", "Nothing"]
+              },
+              {
+                "label": "Scaling",
+                "values": ["Minutes to add instances", "Instantly, up to a concurrency limit"]
+              },
+              {
+                "label": "You manage",
+                "values": ["Operating system, patching, scaling rules", "Just your code and settings"]
+              },
+              {
+                "label": "Cheaper when",
+                "values": ["Traffic is high and steady", "Traffic is low, spiky or unpredictable"]
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "A quiet API costs almost nothing",
+            "text": "NimbusCart’s new mobile API gets about 8 requests per second at its busiest and close to none at night. On API Gateway, Lambda and DynamoDB it costs about $14 a month. A server plus a database would cost more than that even if nobody used them.\n\nAt 600 requests per second all day, though, the per-request prices add up to over $1,000 a month, and a fleet of servers would be cheaper. Serverless is not always cheaper; it is cheaper when you’d otherwise pay for idle machines."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Function",
+                "meaning": "Your code plus settings such as memory and timeout."
+              },
+              {
+                "term": "Invocation",
+                "meaning": "One run of a function."
+              },
+              {
+                "term": "Event",
+                "meaning": "What triggers a function: an API request, a message, a file upload."
+              },
+              {
+                "term": "API",
+                "meaning": "A set of URLs that programs (like a mobile app) call to get data or take actions."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Assuming serverless means \"no limits\". Lambda has concurrency limits and cold starts, and anything behind it (like a database) still has its own limits. The next lesson covers them."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Your API gets 3 requests an hour. Which is likely cheapest?",
+                "options": [
+                  "A t3.micro running all month",
+                  "API Gateway and Lambda",
+                  "An Auto Scaling Group with min 2"
+                ],
+                "answer": 1,
+                "why": "With pay-per-request, almost no traffic means almost no cost."
+              },
+              {
+                "question": "What does API Gateway do?",
+                "options": [
+                  "Stores data",
+                  "Receives HTTP requests and passes them to your functions",
+                  "Runs SQL queries"
+                ],
+                "answer": 1,
+                "why": "It is the managed front door for APIs."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "serverless-limits",
+        "title": "Cold starts, concurrency and connections",
+        "summary": "The three limits that catch out every serverless beginner, and how to design around them.",
+        "minutes": 11,
+        "services": ["rds_proxy"],
+        "practice": ["6-2", "6-4", "6-5"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A pop-up restaurant",
+            "text": "A pop-up restaurant can open extra tables quickly, but each new table needs a moment to be laid. And however many tables it opens, the kitchen only has so many burners: a hundred tables all ordering at once still queue for the stove.\n\nLambda can add executions quickly, but each new one has a short setup delay (a cold start). There is a ceiling on how many run at once (concurrency). And whatever it talks to, such as a relational database, has its own limits."
+          },
+          {
+            "type": "text",
+            "text": "Cold starts. When Lambda needs a new execution environment, it must start it and load your code before handling the request: typically a few hundred milliseconds. Warm environments are reused, so cold starts mostly happen when traffic rises. Giving a function more memory also gives it more CPU, so code and cold starts both run faster, often for about the same total price.\n\nConcurrency. Each request being handled at the same moment uses one execution. Accounts and functions have concurrency limits; requests above the limit are throttled (rejected).\n\nConnections. Each execution is separate, so each one opens its own connection to a relational database. A burst to hundreds of executions can open hundreds of connections at once and exceed the database’s limit: a connection storm.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "RDS Proxy shares a few connections between many executions",
+            "nodes": [
+              {
+                "label": "API Gateway",
+                "kind": "api_gateway"
+              },
+              {
+                "label": "Lambda, 250 executions",
+                "kind": "lambda"
+              },
+              {
+                "label": "RDS Proxy",
+                "kind": "rds_proxy",
+                "note": "keeps 50 connections"
+              },
+              {
+                "label": "Orders database",
+                "kind": "rds",
+                "note": "limit 160 connections"
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "The connection storm",
+            "text": "NimbusCart’s order function runs on Lambda and talks to its PostgreSQL database. At dinner about 215 executions run at once. The database’s connection limit (in the game) is 160. Its CPU is fine, but the extra 55 executions can’t connect and their orders fail.\n\nAdding RDS Proxy fixes it for $22 a month: the functions connect to the proxy, and the proxy shares 50 connections with the database. That is level 6-4."
+          },
+          {
+            "type": "compare",
+            "title": "Three limits and their fixes",
+            "columns": ["What happens", "What helps"],
+            "rows": [
+              {
+                "label": "Cold starts",
+                "values": [
+                  "First requests after a rise are slow",
+                  "More memory; keeping traffic steady; provisioned concurrency"
+                ]
+              },
+              {
+                "label": "Concurrency limit",
+                "values": ["Extra requests are throttled", "A higher limit; queues to smooth bursts"]
+              },
+              {
+                "label": "Database connections",
+                "values": [
+                  "The database refuses new clients",
+                  "RDS Proxy, or DynamoDB which has no connections"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Cold start",
+                "meaning": "Extra delay while a new execution environment starts."
+              },
+              {
+                "term": "Concurrency",
+                "meaning": "How many executions run at the same moment."
+              },
+              {
+                "term": "Throttling",
+                "meaning": "Requests rejected because a limit was reached."
+              },
+              {
+                "term": "Connection pool",
+                "meaning": "A shared set of open connections."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Setting Lambda to the smallest memory size to save money. It runs slower, cold starts are longer, and because you pay for memory × time, it often isn’t cheaper."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "A Lambda API works fine but the database starts refusing connections at peak, with low CPU. What is the fix?",
+                "options": [
+                  "A bigger database",
+                  "RDS Proxy between Lambda and the database",
+                  "Less Lambda memory"
+                ],
+                "answer": 1,
+                "why": "The limit is connections, not CPU. A proxy pools them."
+              },
+              {
+                "question": "What usually reduces cold start time?",
+                "options": ["Less memory", "More memory", "A longer timeout"],
+                "answer": 1,
+                "why": "More memory comes with more CPU, so start-up and code run faster."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "messaging",
+    "title": "Decoupling with messages",
+    "summary": "Queues, topics and event buses: doing slow or unreliable work without making customers wait.",
+    "lessons": [
+      {
+        "id": "queues-sqs",
+        "title": "Synchronous vs asynchronous, and SQS",
+        "summary": "Why customers shouldn’t wait for slow work, and how a queue lets them stop waiting.",
+        "minutes": 12,
+        "services": ["sqs", "payment"],
+        "practice": ["7-1", "7-5"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "The ticket rail in a restaurant kitchen",
+            "text": "In a busy restaurant, waiters don’t stand next to the chef until each dish is cooked. They pin the order ticket on a rail and go back to their tables. Cooks take the next ticket when they’re ready. On a rush night the rail gets long, but no order is lost and waiters keep serving.\n\nThat rail is a queue. Amazon SQS (Simple Queue Service) is that rail for your software."
+          },
+          {
+            "type": "text",
+            "text": "In a synchronous call the caller waits for the answer. If NimbusCart’s checkout calls the payment provider and waits, the customer stares at a spinner for the provider’s full response time, and if the provider is down, the order fails.\n\nIn an asynchronous design the caller hands the work off and moves on. The checkout saves the order, puts a \"charge this order\" message on an SQS queue, and tells the customer \"Order received\" straight away. A separate worker (a Lambda function or servers) takes messages from the queue and calls the payment provider.\n\nIf the worker fails, the message isn’t deleted; it becomes visible again and is retried. If work arrives faster than the worker can handle, it waits in the backlog instead of being dropped.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "Queueing the slow part",
+            "nodes": [
+              {
+                "label": "Checkout function",
+                "kind": "lambda",
+                "note": "saves the order"
+              },
+              {
+                "label": "Payments queue",
+                "kind": "sqs",
+                "note": "holds the work"
+              },
+              {
+                "label": "Payment worker",
+                "kind": "lambda",
+                "note": "takes the next message"
+              },
+              {
+                "label": "Payment provider",
+                "kind": "payment",
+                "note": "slow, sometimes down"
+              }
+            ]
+          },
+          {
+            "type": "compare",
+            "title": "Waiting vs handing off",
+            "columns": ["Synchronous (wait)", "Asynchronous (queue)"],
+            "rows": [
+              {
+                "label": "Customer waits for",
+                "values": ["Every step, including the slowest", "Only saving the order"]
+              },
+              {
+                "label": "If the provider is down",
+                "values": ["Orders fail", "Orders wait and are charged later"]
+              },
+              {
+                "label": "Traffic spikes",
+                "values": ["Hit the slow part directly", "Smoothed out by the backlog"]
+              },
+              {
+                "label": "Good for",
+                "values": [
+                  "Answers the customer needs right now",
+                  "Payments, emails, image processing, reports"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "The payment outage",
+            "text": "At 19:00 the payment provider goes down for 25 minutes, during dinner. Orders arrive at about 90 a second.\n\nWithout a queue, roughly 135,000 orders fail and customers see errors.\n\nWith a queue, every order is accepted and saved. About 135,000 charge messages build up. When the provider returns, the worker drains the backlog in a few minutes, and every order is charged long before midnight. That is the Act 7 boss."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Synchronous",
+                "meaning": "The caller waits for the result."
+              },
+              {
+                "term": "Asynchronous",
+                "meaning": "The caller hands work off and continues."
+              },
+              {
+                "term": "Producer / consumer",
+                "meaning": "Who puts messages in, and who takes them out."
+              },
+              {
+                "term": "Backlog",
+                "meaning": "Messages waiting to be processed."
+              },
+              {
+                "term": "Visibility timeout",
+                "meaning": "How long a received message is hidden before it is retried."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Using a queue for something the customer needs to see right now, such as search results. Queues are for work that can finish a little later."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "The payment provider takes 250 ms. How do you stop customers waiting for it?",
+                "options": [
+                  "A bigger server",
+                  "Queue the charge and let a worker call the provider",
+                  "A longer timeout"
+                ],
+                "answer": 1,
+                "why": "The customer’s request only needs to save the order and queue the charge."
+              },
+              {
+                "question": "A worker crashes while processing a message. What happens to the message?",
+                "options": [
+                  "It is lost",
+                  "It becomes visible again and is retried",
+                  "It is sent to the customer"
+                ],
+                "answer": 1,
+                "why": "Messages are only deleted after successful processing."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "fan-out-events",
+        "title": "Fan-out with SNS and EventBridge",
+        "summary": "Telling many services about one event, without the sender needing to know who listens.",
+        "minutes": 10,
+        "services": ["sns", "eventbridge"],
+        "practice": ["7-2", "7-4"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A school announcement vs a post room",
+            "text": "A head teacher speaking over the loudspeaker reaches every classroom at once; nobody has to pass the message on. A post room is smarter: it reads each envelope and sends it only to the departments that should get it, and if a department is closed, it keeps the post and tries again tomorrow.\n\nAmazon SNS is the loudspeaker. Amazon EventBridge is the post room."
+          },
+          {
+            "type": "text",
+            "text": "When an order is placed, several things should happen: send a receipt email, send an SMS, update analytics, award loyalty points. If the order code calls each of them in turn, it is slow, and one broken service breaks checkout.\n\nWith publish/subscribe, the order code publishes one message (\"order 4021 placed\") to a topic. Every subscriber gets its own copy. The publisher doesn’t know or care who listens, and new subscribers can be added without changing it. This is fan-out.\n\nSNS pushes each message to subscribers immediately and gives up after a few quick retries. If a subscriber is overloaded, its messages can be lost, so the robust pattern is SNS to an SQS queue per subscriber.\n\nEventBridge routes events with rules (\"high-value orders go to fraud checks\") and retries failed deliveries for up to 24 hours, so a struggling consumer falls behind instead of losing events.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "One event, many listeners",
+            "nodes": [
+              {
+                "label": "Order function",
+                "kind": "lambda",
+                "note": "publishes once"
+              },
+              {
+                "label": "Order events",
+                "kind": "sns",
+                "note": "copy for each subscriber"
+              },
+              {
+                "label": "Analytics queue",
+                "kind": "sqs",
+                "note": "buffers a slow consumer"
+              },
+              {
+                "label": "Analytics",
+                "kind": "lambda"
+              }
+            ]
+          },
+          {
+            "type": "compare",
+            "title": "SQS vs SNS vs EventBridge",
+            "columns": ["SQS", "SNS", "EventBridge"],
+            "rows": [
+              {
+                "label": "Shape",
+                "values": [
+                  "One queue, one consumer group",
+                  "One message, every subscriber",
+                  "Events routed by rules"
+                ]
+              },
+              {
+                "label": "If a consumer is slow",
+                "values": ["Messages wait", "Messages can be lost", "Retried for up to 24 hours"]
+              },
+              {
+                "label": "Good for",
+                "values": [
+                  "Work to be done once",
+                  "Broadcasting to many",
+                  "Connecting many services and SaaS"
+                ]
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "Missing loyalty points",
+            "text": "NimbusCart’s loyalty service is run by another team and can’t keep up at dinner. Subscribed straight to an SNS topic, it loses about 340,000 events a day, and customers miss their points.\n\nSwitching the event to EventBridge, the loyalty service still falls behind at the peak, but every event is retried and delivered by late evening. Putting an SQS queue in front of it would also work. That is level 7-4."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Topic",
+                "meaning": "A named channel that publishers send to."
+              },
+              {
+                "term": "Subscriber",
+                "meaning": "An endpoint that receives a copy of each message."
+              },
+              {
+                "term": "Fan-out",
+                "meaning": "One message delivered to many consumers."
+              },
+              {
+                "term": "Event bus",
+                "meaning": "A channel where events are routed by rules."
+              },
+              {
+                "term": "Rule",
+                "meaning": "A pattern that decides which targets get an event."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "mistake",
+            "text": "Subscribing a fragile service directly to SNS. When it struggles, its messages are dropped. Give it a queue."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Email, SMS and analytics all need to know about each order. What fits?",
+                "options": ["One SQS queue", "An SNS topic with three subscribers", "Three database tables"],
+                "answer": 1,
+                "why": "Fan-out gives each subscriber its own copy."
+              },
+              {
+                "question": "A consumer is often overloaded and must not lose events. Which helps?",
+                "options": [
+                  "Subscribe it directly to SNS",
+                  "Put an SQS queue in front of it, or use EventBridge",
+                  "Remove the consumer"
+                ],
+                "answer": 1,
+                "why": "Queues and EventBridge retries hold events until the consumer catches up."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "retries-and-dlq",
+        "title": "Retries, dead-letter queues and idempotency",
+        "summary": "What to do with work that keeps failing, and how to retry safely without charging anyone twice.",
+        "minutes": 9,
+        "services": [],
+        "practice": ["7-3", "7-5"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "A letter with a wrong address",
+            "text": "The post office tries to deliver a letter. If nobody is home, it tries again tomorrow. But if the address doesn’t exist, trying every day forever helps nobody. After a few attempts the letter goes to the returned-mail office, where someone can look at it.\n\nA dead-letter queue (DLQ) is the returned-mail office for messages."
+          },
+          {
+            "type": "text",
+            "text": "Retries fix temporary problems: a timeout, a provider that is briefly down. Each failed message goes back into the queue and is tried again later.\n\nSome messages fail every time, for example because they are malformed: poison messages. Without a dead-letter queue they are retried forever, using worker capacity, and the queue never empties. With a DLQ, a message that fails a set number of times (say 3) is moved aside for someone to inspect, and everything else keeps flowing.\n\nRetries create another risk: doing something twice. If a worker charges a card and then crashes before deleting the message, the message is retried and the card could be charged again. An idempotent operation has the same effect however many times it runs. Payment providers accept an idempotency key (such as the order ID), so a repeated charge with the same key is ignored.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "diagram",
+            "caption": "Bad messages are set aside",
+            "nodes": [
+              {
+                "label": "Payments queue",
+                "kind": "sqs",
+                "note": "retries up to 3 times"
+              },
+              {
+                "label": "Payment worker",
+                "kind": "lambda"
+              },
+              {
+                "label": "Dead-letter queue",
+                "note": "for a person to inspect"
+              }
+            ]
+          },
+          {
+            "type": "example",
+            "title": "The buggy app release",
+            "text": "A new app version sends about 3% of orders with a malformed address. The payment worker fails on every one.\n\nWithout a DLQ, the bad messages are retried all day, about 3 million messages are still stuck at midnight, and the queue never empties. With a DLQ, each bad message moves aside after three tries, every good order is charged, and the team fixes the 3% the next morning. That is level 7-3."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Retry",
+                "meaning": "Trying failed work again later."
+              },
+              {
+                "term": "Backoff",
+                "meaning": "Waiting longer between each retry so a struggling service can recover."
+              },
+              {
+                "term": "Poison message",
+                "meaning": "A message that will fail every time."
+              },
+              {
+                "term": "Dead-letter queue",
+                "meaning": "Where messages go after too many failures."
+              },
+              {
+                "term": "Idempotent",
+                "meaning": "Safe to repeat: doing it twice has the same effect as once."
+              }
+            ]
+          },
+          {
+            "type": "tip",
+            "kind": "real-world",
+            "text": "SQS standard queues deliver each message at least once, and occasionally more than once. Design every consumer to be idempotent, not just payments."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "A few malformed messages are retried forever. What fixes it?",
+                "options": ["A bigger worker", "A dead-letter queue", "A longer TTL"],
+                "answer": 1,
+                "why": "After a few failures the DLQ takes them out of the main queue."
+              },
+              {
+                "question": "Why use an idempotency key when charging cards?",
+                "options": [
+                  "It makes charges faster",
+                  "A retried charge with the same key won’t bill twice",
+                  "It encrypts the card"
+                ],
+                "answer": 1,
+                "why": "Retries happen; idempotency makes them safe."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "putting-it-together",
+    "title": "Putting it together",
+    "summary": "Judging a design like an architect, and touring a complete system.",
+    "lessons": [
+      {
+        "id": "well-architected",
+        "title": "Cost and the Well-Architected Framework",
+        "summary": "The six questions AWS architects ask of every design, and how the game scores them.",
+        "minutes": 9,
+        "services": [],
+        "practice": ["2-3", "3-2"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "Inspecting a house before you buy it",
+            "text": "A good surveyor doesn’t only ask \"does it stand up?\". They check whether it is safe, whether the heating bills will be huge, whether the wiring will catch fire, whether it is easy to maintain, and whether it is wasteful.\n\nThe AWS Well-Architected Framework is that surveyor’s checklist for cloud systems, and the game’s report card is based on it."
+          },
+          {
+            "type": "text",
+            "text": "The framework has six pillars:\n\nReliability: does it keep working when parts fail? In the game: availability, survived incidents, no single points of failure, no lost data.\n\nPerformance efficiency: is it fast enough under load? In the game: p95 latency against the target.\n\nCost optimisation: does it avoid paying for what it doesn’t need? In the game: monthly cost against budget, with a bonus for coming in well under.\n\nSecurity: is it protected? In the game: private databases and buckets, tight firewalls.\n\nOperational excellence: can you run it well? In the game: alarms, health checks, backups, dead-letter queues.\n\nSustainability: does it avoid waste? In the game: right-sized resources that aren’t idle most of the day.",
+            "title": "How it actually works"
+          },
+          {
+            "type": "compare",
+            "title": "Common cost levers",
+            "columns": ["When it helps"],
+            "rows": [
+              {
+                "label": "Right-sizing",
+                "values": ["Instances or databases rarely above 30% load"]
+              },
+              {
+                "label": "Auto Scaling",
+                "values": ["Traffic that swings through the day"]
+              },
+              {
+                "label": "Caching and CDNs",
+                "values": ["The same answers read again and again"]
+              },
+              {
+                "label": "Serverless",
+                "values": ["Low or very spiky traffic"]
+              },
+              {
+                "label": "Servers instead of serverless",
+                "values": ["High, steady traffic all day"]
+              }
+            ],
+            "rowHeader": "Lever"
+          },
+          {
+            "type": "example",
+            "title": "Balancing the pillars",
+            "text": "Two designs for the same level both pass. Design A uses a db.r6g.xlarge \"to be safe\": it never goes above 15% load and costs $340 a month. Design B uses a db.t3.medium with a cache: peak load 60%, $64 a month.\n\nBoth are reliable and fast. B scores higher on cost and sustainability, so it earns three stars where A earns two. In the game, as in real reviews, the best design is balanced, not the biggest."
+          },
+          {
+            "type": "terms",
+            "items": [
+              {
+                "term": "Pillar",
+                "meaning": "One of the six areas a design is judged on."
+              },
+              {
+                "term": "Trade-off",
+                "meaning": "Improving one thing at the expense of another."
+              },
+              {
+                "term": "Right-sizing",
+                "meaning": "Choosing the smallest size that comfortably handles the peak."
+              }
+            ]
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "A database never goes above 10% load. Which pillars suffer?",
+                "options": ["Reliability and security", "Cost and sustainability", "Performance only"],
+                "answer": 1,
+                "why": "You are paying for capacity you don’t use."
+              },
+              {
+                "question": "Which pillar do alarms, health checks and backups mainly improve?",
+                "options": ["Operational excellence", "Cost", "Performance"],
+                "answer": 0,
+                "why": "They make the system observable and recoverable."
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "architecture-tour",
+        "title": "A tour of a complete system",
+        "summary": "Following one order through everything you’ve learned, from a tap on a phone to a charged card.",
+        "minutes": 10,
+        "services": [],
+        "practice": ["7-5"],
+        "blocks": [
+          {
+            "type": "everyday",
+            "title": "Following a parcel",
+            "text": "When you track a parcel you see every step: collected, sorted at a hub, loaded on a van, delivered. Each step is handled by a different part of the company, and each can fail without losing the parcel.\n\nThis lesson follows one NimbusCart order through a design that uses almost everything in this course."
+          },
+          {
+            "type": "diagram",
+            "caption": "The images path",
+            "nodes": [
+              {
+                "label": "Customer",
+                "kind": "users"
+              },
+              {
+                "label": "CloudFront",
+                "kind": "cloudfront",
+                "note": "photos from the nearest edge"
+              },
+              {
+                "label": "Assets bucket",
+                "kind": "s3",
+                "note": "private, read only by CloudFront"
+              }
+            ]
+          },
+          {
+            "type": "diagram",
+            "caption": "The order path",
+            "nodes": [
+              {
+                "label": "API Gateway",
+                "kind": "api_gateway"
+              },
+              {
+                "label": "Order function",
+                "kind": "lambda"
+              },
+              {
+                "label": "Orders table",
+                "kind": "dynamodb"
+              },
+              {
+                "label": "Payments queue",
+                "kind": "sqs",
+                "note": "with a DLQ"
+              },
+              {
+                "label": "Payment worker",
+                "kind": "lambda"
+              },
+              {
+                "label": "Payment provider",
+                "kind": "payment"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "text": "1. Priya opens the app. The product photos come from CloudFront’s edge in her city, read from a private S3 bucket. Her phone never talks to a server for images.\n\n2. She taps \"Place order\". The request goes to API Gateway, which calls the order function on Lambda. It saves the order to DynamoDB, keyed by order ID so traffic spreads evenly.\n\n3. The function puts a \"charge order\" message on an SQS queue and publishes an \"order placed\" event. Priya sees \"Order received\" about 120 ms after tapping.\n\n4. A worker function takes the message and charges her card with an idempotency key. If the provider is down, the message waits and is retried; if it is malformed, the dead-letter queue catches it.\n\n5. The event fans out: an email receipt, an SMS, analytics through its own queue, and loyalty points through EventBridge.\n\nEvery step either runs across several Availability Zones automatically or can be retried. No single failure loses her order.",
+            "title": "One order, step by step"
+          },
+          {
+            "type": "compare",
+            "title": "Which failure is handled where",
+            "columns": ["What absorbs it"],
+            "rows": [
+              {
+                "label": "A traffic spike",
+                "values": ["CloudFront, Lambda scaling, on-demand DynamoDB"]
+              },
+              {
+                "label": "The payment provider goes down",
+                "values": ["The queue and retries"]
+              },
+              {
+                "label": "A malformed message",
+                "values": ["The dead-letter queue"]
+              },
+              {
+                "label": "A slow subscriber",
+                "values": ["Its own queue, or EventBridge retries"]
+              },
+              {
+                "label": "An Availability Zone goes dark",
+                "values": ["Managed services span zones"]
+              }
+            ],
+            "rowHeader": "Failure"
+          },
+          {
+            "type": "example",
+            "title": "What you can now explain",
+            "text": "If you can explain why each box in these two diagrams is there, and what happens when it fails, you understand more architecture than many people who use AWS every day. The game’s Act 7 boss asks you to build this from scratch."
+          },
+          {
+            "type": "quiz",
+            "questions": [
+              {
+                "question": "Why does the order function put the charge on a queue instead of calling the provider?",
+                "options": [
+                  "Queues are cheaper",
+                  "So the customer doesn’t wait for, or fail with, the provider",
+                  "Providers require it"
+                ],
+                "answer": 1,
+                "why": "Decoupling turns a provider outage into a delay instead of an error."
+              },
+              {
+                "question": "Why key the orders table by order ID?",
+                "options": [
+                  "It sorts orders by date",
+                  "Every order has a different key, so traffic spreads across partitions",
+                  "It is required by Lambda"
+                ],
+                "answer": 1,
+                "why": "Many distinct keys avoid hot partitions."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import actsJson from '../data/acts.json';
 import conceptsJson from '../data/concepts.json';
+import courseJson from '../data/course.json';
 import act1 from '../data/levels/act1.json';
 import act2 from '../data/levels/act2.json';
 import act3 from '../data/levels/act3.json';
@@ -9,7 +10,15 @@ import act5 from '../data/levels/act5.json';
 import act6 from '../data/levels/act6.json';
 import act7 from '../data/levels/act7.json';
 import servicesJson from '../data/services.json';
-import { Act, Catalogue, Concept, type Level, Level as LevelSchema } from './schemas';
+import {
+  Act,
+  Catalogue,
+  Concept,
+  CourseModule,
+  type Level,
+  Level as LevelSchema,
+  type Lesson,
+} from './schemas';
 
 export * from './schemas';
 
@@ -32,4 +41,15 @@ export function getLevel(id: string): Level | undefined {
 
 export function levelsInAct(act: number): Level[] {
   return levels.filter((l) => l.act === act).sort((a, b) => a.index - b.index);
+}
+
+/** The beginner course: modules of lessons, read in order. */
+export const course: CourseModule[] = z.array(CourseModule).parse(courseJson);
+
+/** Every lesson in reading order. */
+export const lessons: Lesson[] = course.flatMap((m) => m.lessons);
+
+/** The lesson that teaches a service, if there is one. */
+export function lessonFor(kind: string): Lesson | undefined {
+  return lessons.find((l) => (l.services as string[]).includes(kind));
 }
