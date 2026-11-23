@@ -51,6 +51,12 @@ provider outages, cache flushes, viral hot keys, a dropped table, and poison mes
 
 **No AWS experience needed.**
 
+- **A beginner course.** 20 lessons in 7 modules, about three hours, from "what happens when you open a
+  website" to event-driven architecture. Every lesson starts with something from daily life (a restaurant
+  kitchen, a library, a post room), then explains how it actually works, with a diagram, a worked example with
+  real numbers, comparisons, words to know, common mistakes, a short quiz with explanations, and links to the
+  levels that practise it. Progress is saved in the browser.
+
 - **Service guide.** Searchable, available from every screen. Each service has an everyday analogy, a
   beginner overview, how it behaves in the game, when to use and avoid it, words to know, a worked NimbusCart
   example, common mistakes, what it pairs with, and its sizes and prices. 24 concept pages cover the ideas behind
