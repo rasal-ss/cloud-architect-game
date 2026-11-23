@@ -9,13 +9,30 @@ function detail(node: ServiceFlowNode['data']): string {
   const c = node.config;
   switch (node.kind) {
     case 'ec2':
-      return `${c.size} · AZ ${c.az?.toUpperCase()}`;
+      return `${c.size}, AZ ${c.az?.toUpperCase()}`;
     case 'asg':
-      return `${c.size} · ${c.min}–${c.max}`;
+      return `${c.size}, ${c.min}–${c.max}`;
     case 'rds':
+      return `${c.size}${c.multiAz ? ', Multi-AZ' : ''}`;
     case 'rds_replica':
     case 'elasticache':
       return c.size ?? '';
+    case 'lambda':
+      return `${c.size}, max ${c.concurrency}`;
+    case 'dynamodb':
+      return `${c.capacityMode === 'provisioned' ? `${c.provisionedUnits} units` : 'on-demand'}, ${c.partitionKey}`;
+    case 'sqs':
+      return [c.fifo ? 'FIFO' : 'standard', c.dlq ? 'DLQ' : 'no DLQ'].join(', ');
+    case 'payment':
+      return 'third-party API';
+    case 'api_gateway':
+      return 'HTTP API';
+    case 'rds_proxy':
+      return 'connection pool';
+    case 'sns':
+      return 'topic';
+    case 'eventbridge':
+      return 'event bus';
     case 'cloudfront':
       return `cache ${c.ttlSeconds! >= 3600 ? `${c.ttlSeconds! / 3600}h` : `${c.ttlSeconds}s`}`;
     case 'alb':
@@ -50,9 +67,13 @@ function ServiceNodeView({ id, data, selected }: NodeProps<ServiceFlowNode>) {
         <span className="node-badge">
           {status === 'down'
             ? 'Down'
-            : tick.instances !== undefined
-              ? `${pct}% · ${tick.instances}×`
-              : `${pct}%`}
+            : tick.backlog !== undefined
+              ? `${Math.round(tick.backlog).toLocaleString()} waiting`
+              : tick.instances !== undefined
+                ? `${pct}%, ${tick.instances}×`
+                : tick.concurrency !== undefined
+                  ? `${pct}%, ${Math.round(tick.concurrency)} running`
+                  : `${pct}%`}
         </span>
       )}
       {tick && !isUsers && (

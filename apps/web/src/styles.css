@@ -81,20 +81,21 @@ button {
 .muted {
   color: var(--ink-3);
 }
-.eyebrow {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+.eyebrow,
+.topbar-act,
+.intro-kicker {
+  font-size: 12.5px;
   color: var(--ink-3);
 }
+.intro-kicker {
+  margin-bottom: 6px;
+}
 .panel-label {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-3);
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink-2);
   margin-bottom: 10px;
 }
 
@@ -365,8 +366,8 @@ button {
 }
 .level-tile.boss .tile-id {
   color: var(--bad);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-family: var(--sans);
+  font-weight: 600;
 }
 .tile-title {
   font-weight: 500;
@@ -936,7 +937,6 @@ button {
   gap: 10px;
 }
 .fact-row dt {
-  font-family: var(--mono);
   font-size: 12px;
   color: var(--ink-3);
   padding-top: 1px;
@@ -1287,11 +1287,7 @@ button {
   color: var(--ink);
 }
 .tip b {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 600;
   color: var(--accent);
 }
 .breakdown {
@@ -1664,13 +1660,10 @@ button {
   letter-spacing: -0.02em;
 }
 .service-card h4 {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 6px;
 }
 .service-card section p {
   color: var(--ink-2);
@@ -1718,10 +1711,8 @@ button {
   font-size: 13px;
 }
 .card-facts dt {
-  font-family: var(--mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--ink-3);
 }
 .card-facts dd {
@@ -1838,5 +1829,216 @@ button {
   }
   .intro {
     padding: 22px;
+  }
+}
+
+/* ---------- Grouped palette ---------- */
+
+.palette-group + .palette-group {
+  margin-top: 12px;
+}
+.palette-heading {
+  padding: 0 6px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* ---------- Guide: search, sections, deeper cards ---------- */
+
+.guide-search {
+  width: 100%;
+  height: 34px;
+  margin-bottom: 14px;
+  padding: 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.guide-heading {
+  margin: 14px 8px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.guide-nav > .guide-heading:first-of-type {
+  margin-top: 0;
+}
+.guide-dot {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: radial-gradient(circle at 50% 50%, var(--accent) 0 3px, transparent 3.5px), var(--accent-soft);
+}
+.guide-results {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.guide-results .muted {
+  padding: 0 8px;
+}
+.concept {
+  border-radius: 10px;
+  transition: background 0.4s;
+}
+.concept.focus {
+  background: var(--accent-soft);
+  margin: 0 -12px;
+  padding: 16px 12px;
+}
+.concept p + p {
+  margin-top: 8px;
+}
+.card-role {
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.service-card section p + p {
+  margin-top: 8px;
+}
+.terms {
+  display: grid;
+  gap: 8px;
+}
+.terms div {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 12px;
+}
+.terms dt {
+  font-weight: 600;
+  color: var(--ink);
+}
+.terms dd {
+  color: var(--ink-2);
+}
+.example {
+  padding: 14px 16px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+.mistakes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--ink-2);
+}
+.mistakes li {
+  position: relative;
+  padding-left: 18px;
+}
+.mistakes li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.55em;
+  width: 8px;
+  height: 2px;
+  background: var(--bad);
+}
+.pairs {
+  display: grid;
+  gap: 6px;
+}
+.pair {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  text-align: left;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.pair:hover {
+  border-color: var(--line-2);
+  background: var(--surface-2);
+}
+.pair b {
+  display: block;
+  color: var(--ink);
+}
+.service-card.compact {
+  gap: 14px;
+}
+
+/* ---------- Walkthrough ---------- */
+
+.walkthrough {
+  position: relative;
+}
+.walkthrough .steps li p {
+  color: var(--ink);
+  padding-top: 3px;
+}
+.why {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+}
+.why h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.why p {
+  color: var(--ink-2);
+}
+.confirm-text {
+  margin-right: auto;
+  color: var(--warn);
+  font-size: 13px;
+}
+.stuck {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--ink-2);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+.stuck b {
+  color: var(--ink);
+}
+.walkthrough-link {
+  display: inline-block;
+  margin-top: 14px;
+}
+
+@media (max-width: 820px) {
+  .terms div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .guide-search {
+    width: 180px;
+    flex: none;
+    margin: 0;
+  }
+  .guide-heading,
+  .guide-section .guide-heading {
+    display: none;
+  }
+  .guide-section {
+    display: contents;
+  }
+  .palette-group {
+    display: contents;
+  }
+  .palette-heading {
+    display: none;
   }
 }

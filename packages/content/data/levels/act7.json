@@ -119,8 +119,8 @@
         {
           "id": "pay",
           "kind": "payment",
-          "x": 1080,
-          "y": 420,
+          "x": 1240,
+          "y": 560,
           "config": {},
           "label": "Payment provider",
           "locked": true
@@ -317,8 +317,8 @@
         {
           "id": "worker",
           "kind": "lambda",
-          "x": 940,
-          "y": 540,
+          "x": 1000,
+          "y": 560,
           "config": {
             "size": "512 MB",
             "concurrency": 100
@@ -328,8 +328,8 @@
         {
           "id": "pay",
           "kind": "payment",
-          "x": 1080,
-          "y": 420,
+          "x": 1240,
+          "y": 560,
           "config": {},
           "label": "Payment provider",
           "locked": true
@@ -581,8 +581,8 @@
         {
           "id": "worker",
           "kind": "lambda",
-          "x": 940,
-          "y": 540,
+          "x": 1000,
+          "y": 560,
           "config": {
             "size": "512 MB",
             "concurrency": 100
@@ -592,8 +592,8 @@
         {
           "id": "pay",
           "kind": "payment",
-          "x": 1080,
-          "y": 420,
+          "x": 1240,
+          "y": 560,
           "config": {},
           "label": "Payment provider",
           "locked": true
@@ -792,8 +792,8 @@
         {
           "id": "worker",
           "kind": "lambda",
-          "x": 940,
-          "y": 540,
+          "x": 1000,
+          "y": 560,
           "config": {
             "size": "512 MB",
             "concurrency": 100
@@ -803,8 +803,8 @@
         {
           "id": "pay",
           "kind": "payment",
-          "x": 1080,
-          "y": 420,
+          "x": 1240,
+          "y": 560,
           "config": {},
           "label": "Payment provider",
           "locked": true
@@ -1008,8 +1008,8 @@
         {
           "id": "pay",
           "kind": "payment",
-          "x": 1080,
-          "y": 420,
+          "x": 1240,
+          "y": 560,
           "config": {},
           "label": "Payment provider",
           "locked": true

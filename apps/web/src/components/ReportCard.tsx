@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { money, percent } from '../lib/catalogue';
 import { SANDBOX_ID } from '../lib/sandbox';
 import { nextLevelId, useGame } from '../store/gameStore';
-import { IconArrow, IconCheck, IconClose, IconCross, Stars } from './icons';
+import { IconCheck, IconClose, IconCross, Stars } from './icons';
 
 const PILLAR_LABEL: Record<Pillar, string> = {
   reliability: 'Reliability',
@@ -23,6 +23,7 @@ export function ReportCard() {
   const openLevel = useGame((s) => s.openLevel);
   const seek = useGame((s) => s.seek);
   const togglePlay = useGame((s) => s.togglePlay);
+  const setWalkthrough = useGame((s) => s.setWalkthrough);
   const dialog = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -61,7 +62,7 @@ export function ReportCard() {
         </button>
 
         <header className={`verdict ${result.passed ? 'pass' : 'fail'}`}>
-          <span className="eyebrow">{level.title.replace(/^Boss: /, '')}</span>
+          <p className="intro-kicker">{level.title.replace(/^Boss: /, '')}</p>
           <h2 id="report-title">
             {!result.valid ? 'The design can’t run yet' : result.passed ? 'You made it.' : 'Not this time.'}
           </h2>
@@ -94,6 +95,18 @@ export function ReportCard() {
                 </li>
               ))}
             </ul>
+
+            {!result.passed && level.id !== SANDBOX_ID && (
+              <button
+                className="link-btn walkthrough-link"
+                onClick={() => {
+                  close(false);
+                  setWalkthrough(true);
+                }}
+              >
+                Stuck? See the walkthrough for this level
+              </button>
+            )}
 
             {tip && result.stars < 3 && (
               <p className="tip">
@@ -143,9 +156,63 @@ export function ReportCard() {
                   <dt>Orders lost</dt>
                   <dd>{m.lostWrites.toLocaleString()}</dd>
                 </div>
+                {m.ordersCharged > 0 && (
+                  <div className="fact-row">
+                    <dt>Orders charged</dt>
+                    <dd>{percent(m.ordersCharged / Math.max(1, m.ordersPlaced), 2)}</dd>
+                  </div>
+                )}
+                {m.queue.peakBacklog > 0 && (
+                  <div className="fact-row">
+                    <dt>Largest queue backlog</dt>
+                    <dd>{m.queue.peakBacklog.toLocaleString()}</dd>
+                  </div>
+                )}
+                {m.queue.peakBacklog > 0 && (
+                  <div className="fact-row">
+                    <dt>Still queued at midnight</dt>
+                    <dd>{(m.queue.endBacklog + m.queue.poisonLeft).toLocaleString()}</dd>
+                  </div>
+                )}
+                {m.queue.deadLettered > 0 && (
+                  <div className="fact-row">
+                    <dt>Sent to the dead-letter queue</dt>
+                    <dd>{m.queue.deadLettered.toLocaleString()}</dd>
+                  </div>
+                )}
+                {m.lostMessages > 0 && (
+                  <div className="fact-row">
+                    <dt>Events lost</dt>
+                    <dd>{m.lostMessages.toLocaleString()}</dd>
+                  </div>
+                )}
+                {m.sessionsLost > 0 && (
+                  <div className="fact-row">
+                    <dt>Customers logged out</dt>
+                    <dd>{m.sessionsLost.toLocaleString()}</dd>
+                  </div>
+                )}
+                {m.stalenessSec > 0 && (
+                  <div className="fact-row">
+                    <dt>Oldest data shown</dt>
+                    <dd>{Math.round(m.stalenessSec)} s</dd>
+                  </div>
+                )}
+                {m.coldStartShare > 0 && (
+                  <div className="fact-row">
+                    <dt>Lambda cold starts</dt>
+                    <dd>{percent(m.coldStartShare, 1)}</dd>
+                  </div>
+                )}
+                {m.throttled > 0 && (
+                  <div className="fact-row">
+                    <dt>Throttled by DynamoDB</dt>
+                    <dd>{m.throttled.toLocaleString()}</dd>
+                  </div>
+                )}
               </dl>
 
-              <h3 className="panel-label">Cost · {money(m.monthlyCost)} per month</h3>
+              <h3 className="panel-label">Cost: {money(m.monthlyCost)} per month</h3>
               <ul className="bars">
                 {m.costBreakdown
                   .filter((c) => c.monthly >= 0.01)
@@ -210,7 +277,7 @@ export function ReportCard() {
           </button>
           {result.passed && next && (
             <button className="btn primary" onClick={() => openLevel(next)}>
-              Next level <IconArrow />
+              Next level
             </button>
           )}
         </footer>

@@ -1,6 +1,6 @@
 import { acts, levels, levelsInAct } from '@cloud-architect/content';
 import { useGame } from '../store/gameStore';
-import { IconArrow, IconBook, Stars } from './icons';
+import { IconBook, Stars } from './icons';
 
 export function LevelSelect() {
   const progress = useGame((s) => s.progress);
@@ -22,7 +22,7 @@ export function LevelSelect() {
         </span>
         <span className="menu-bar-right">
           <button className="btn ghost" onClick={() => openGuide()}>
-            <IconBook /> Service guide
+            <IconBook /> <span className="hide-sm">Service guide</span>
           </button>
           <span className="menu-stars" title="Stars earned">
             <Stars count={1} size={13} label={false} /> {totalStars} / {levels.length * 3}
@@ -40,8 +40,7 @@ export function LevelSelect() {
         </p>
         <div className="hero-actions">
           <button className="btn primary lg" onClick={() => openLevel(next.id)}>
-            {started ? 'Continue' : 'Start'} · {next.title.replace(/^Boss: /, '')}
-            <IconArrow />
+            {started ? 'Continue with' : 'Start with'} {next.title.replace(/^Boss: /, '')}
           </button>
           <button className="btn ghost lg" onClick={() => openGuide()}>
             New to AWS? Learn the basics
@@ -58,7 +57,7 @@ export function LevelSelect() {
             <span className="act-num">Act {act.act}</span>
             <h2>{act.title}</h2>
             <p>
-              {act.stage} · {act.scale}
+              {act.stage}, {act.scale}
             </p>
           </div>
           <ol className="level-row">

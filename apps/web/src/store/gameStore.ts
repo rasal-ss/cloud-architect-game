@@ -7,6 +7,7 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
 } from '@xyflow/react';
+import { solutions } from '@cloud-architect/content/solutions';
 import { create } from 'zustand';
 import { catalogue } from '../lib/catalogue';
 import { type ServiceFlowNode, type TrafficFlowEdge, fromFlow, nextId, toFlow } from '../lib/design';
@@ -42,10 +43,16 @@ interface GameState {
   guide: string | null;
   /** Introduction shown when a level unlocks something new. */
   intro: LevelIntro | null;
+  /** The worked answer for the current level is open. */
+  walkthrough: boolean;
+  /** Runs of this level that did not pass, this visit. */
+  failedRuns: number;
 
   openGuide: (topic?: string) => void;
   closeGuide: () => void;
   dismissIntro: () => void;
+  setWalkthrough: (open: boolean) => void;
+  loadSolution: () => void;
   openLevel: (id: string) => void;
   openSandbox: () => void;
   backToMenu: () => void;
@@ -94,6 +101,8 @@ export const useGame = create<GameState>()((set, get) => {
       edges,
       selectedId: null,
       guide: null,
+      walkthrough: false,
+      failedRuns: 0,
       intro: level.id === SANDBOX_ID ? null : introFor(level),
       ...invalidated,
     });
@@ -116,6 +125,8 @@ export const useGame = create<GameState>()((set, get) => {
     showReport: false,
     guide: null,
     intro: null,
+    walkthrough: false,
+    failedRuns: 0,
 
     openGuide: (topic = 'basics') => set({ guide: topic }),
     closeGuide: () => set({ guide: null }),
@@ -125,6 +136,15 @@ export const useGame = create<GameState>()((set, get) => {
         markSeen([...(intro.howToPlay ? ['how-to-play'] : []), ...intro.kinds.map((k) => `service:${k}`)]);
       }
       set({ intro: null });
+    },
+    setWalkthrough: (walkthrough) => set({ walkthrough }),
+    loadSolution: () => {
+      const { level } = get();
+      const answer = level && solutions[level.id];
+      if (!answer) return;
+      const { nodes, edges } = toFlow(answer);
+      set({ nodes, edges, selectedId: null, walkthrough: false, ...invalidated });
+      persist();
     },
     openLevel: (id) => {
       const level = getLevel(id);
@@ -235,7 +255,13 @@ export const useGame = create<GameState>()((set, get) => {
           set({ ...invalidated, result, showReport: true });
           return;
         }
-        set({ snapshots, result, cursor: 0, status: 'playing' });
+        set((s) => ({
+          snapshots,
+          result,
+          cursor: 0,
+          status: 'playing',
+          failedRuns: result.passed ? s.failedRuns : s.failedRuns + 1,
+        }));
         if (level.id !== SANDBOX_ID) {
           set({
             progress: recordResult(level.id, {

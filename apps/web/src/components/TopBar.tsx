@@ -17,8 +17,8 @@ export function TopBar() {
         <IconBack />
       </button>
       <div className="topbar-title">
-        <span className="eyebrow">
-          {level.id === SANDBOX_ID ? 'Sandbox' : `Act ${level.act} · Level ${level.index}`}
+        <span className="topbar-act">
+          {level.id === SANDBOX_ID ? 'Sandbox' : `Act ${level.act}, level ${level.index}`}
         </span>
         <h1>{level.title.replace(/^Boss: /, '')}</h1>
       </div>

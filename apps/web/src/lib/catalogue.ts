@@ -1,4 +1,4 @@
-import { services } from '@cloud-architect/content';
+import { type ServiceKind, services } from '@cloud-architect/content';
 import { Catalogue } from '@cloud-architect/engine';
 
 export const catalogue = new Catalogue(services);
@@ -11,6 +11,8 @@ export const CATEGORY_COLOR: Record<string, string> = {
   database: '#5ea8ff',
   caching: '#f177c4',
   storage: '#9bd25f',
+  messaging: '#4fd1c5',
+  external: '#b0b7c3',
 };
 
 export const KIND_GLYPH: Record<string, string> = {
@@ -23,7 +25,23 @@ export const KIND_GLYPH: Record<string, string> = {
   rds: 'RDS',
   rds_replica: 'RR',
   elasticache: 'RC',
+  api_gateway: 'API',
+  lambda: '\u03bb',
+  dynamodb: 'DDB',
+  rds_proxy: 'PRX',
+  sqs: 'SQS',
+  sns: 'SNS',
+  eventbridge: 'EVB',
+  payment: '$',
 };
+
+/** Palette and guide groups, in the order players meet them. */
+export const GROUPS: { label: string; kinds: ServiceKind[] }[] = [
+  { label: 'Edge and network', kinds: ['cloudfront', 's3', 'alb', 'api_gateway'] },
+  { label: 'Compute', kinds: ['ec2', 'asg', 'lambda'] },
+  { label: 'Data', kinds: ['rds', 'rds_replica', 'rds_proxy', 'elasticache', 'dynamodb'] },
+  { label: 'Messaging', kinds: ['sqs', 'sns', 'eventbridge'] },
+];
 
 export const REQUEST_COLOR = {
   static: '#5aa9ff',

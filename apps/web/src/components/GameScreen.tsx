@@ -8,6 +8,7 @@ import { Palette } from './Palette';
 import { ReportCard } from './ReportCard';
 import { RunDock } from './RunDock';
 import { TopBar } from './TopBar';
+import { Walkthrough } from './Walkthrough';
 
 /** Drives playback with requestAnimationFrame while a run is playing. */
 function usePlayback() {
@@ -63,6 +64,7 @@ export function GameScreen() {
         </div>
         <ReportCard />
         <LevelIntro />
+        <Walkthrough />
         {toast && (
           <div className="toast" role="alert">
             {toast}

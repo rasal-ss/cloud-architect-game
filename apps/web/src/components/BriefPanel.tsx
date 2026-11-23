@@ -11,6 +11,8 @@ export function BriefPanel() {
   const sandbox = useGame((s) => s.sandbox);
   const updateSandbox = useGame((s) => s.updateSandbox);
   const resetDesign = useGame((s) => s.resetDesign);
+  const setWalkthrough = useGame((s) => s.setWalkthrough);
+  const failedRuns = useGame((s) => s.failedRuns);
   if (!level) return null;
   const isSandbox = level.id === SANDBOX_ID;
   const t = level.traffic;
@@ -108,7 +110,7 @@ export function BriefPanel() {
           <div className="fact-row">
             <dt>Mix</dt>
             <dd>
-              {percent(t.mix.static, 0)} files · {percent(t.mix.read, 0)} reads · {percent(t.mix.write, 0)}{' '}
+              {percent(t.mix.static, 0)} files, {percent(t.mix.read, 0)} reads, {percent(t.mix.write, 0)}{' '}
               orders
             </dd>
           </div>
@@ -136,7 +138,16 @@ export function BriefPanel() {
             ))}
           </ul>
           <p className="muted">{level.lesson}</p>
+          <button className="link-btn" onClick={() => setWalkthrough(true)}>
+            Still stuck? See the walkthrough
+          </button>
         </details>
+      )}
+
+      {!isSandbox && failedRuns >= 2 && (
+        <button className="stuck" onClick={() => setWalkthrough(true)}>
+          <b>Two tries without passing.</b> The walkthrough shows one design that works, and why.
+        </button>
       )}
 
       <button className="link-btn subtle" onClick={resetDesign}>

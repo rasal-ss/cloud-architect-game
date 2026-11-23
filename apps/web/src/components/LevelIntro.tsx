@@ -1,7 +1,6 @@
 import type { ServiceKind } from '@cloud-architect/content';
 import { useState } from 'react';
 import { useGame } from '../store/gameStore';
-import { IconArrow } from './icons';
 import { ServiceCard } from './ServiceCard';
 
 type Page = { type: 'how' } | { type: 'service'; kind: ServiceKind };
@@ -45,7 +44,6 @@ export function LevelIntro() {
       <div className="intro" role="dialog" aria-modal="true" aria-labelledby="intro-title">
         {page.type === 'how' ? (
           <>
-            <span className="eyebrow">Welcome</span>
             <h2 id="intro-title">How to play</h2>
             <p className="intro-lead">
               You’re the cloud architect for NimbusCart, a grocery-delivery startup. Each level is a request
@@ -65,9 +63,9 @@ export function LevelIntro() {
           </>
         ) : (
           <>
-            <span className="eyebrow" id="intro-title">
-              New component unlocked
-            </span>
+            <p className="intro-kicker" id="intro-title">
+              New in this level
+            </p>
             <ServiceCard kind={page.kind} compact />
           </>
         )}
@@ -96,7 +94,6 @@ export function LevelIntro() {
           )}
           <button className="btn primary" onClick={last ? finish : () => setIndex(index + 1)} autoFocus>
             {last ? 'Start building' : 'Next'}
-            <IconArrow />
           </button>
         </footer>
       </div>

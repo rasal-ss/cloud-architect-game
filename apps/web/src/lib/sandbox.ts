@@ -20,8 +20,8 @@ export function sandboxLevel(s: SandboxSettings): Level {
     title: 'Sandbox',
     from: 'You',
     brief:
-      'Every Phase 1 service is unlocked. Set your own traffic and budget, build anything, and stress-test it with chaos events.',
-    lesson: 'Try read replicas and ElastiCache here: in the campaign they unlock in Act 4.',
+      'Every service is unlocked. Set your own traffic and budget, build anything, and stress-test it with chaos events. A payment provider is there for you to try queues and workers against.',
+    lesson: 'Use the sandbox to try ideas from the guide before the campaign gets to them.',
     budget: s.budget,
     traffic: {
       peakRps: s.peakRps,
@@ -75,11 +75,34 @@ export function sandboxLevel(s: SandboxSettings): Level {
       { type: 'noDataLoss' },
       { type: 'noSecurityIssues' },
     ],
-    palette: ['ec2', 'asg', 'alb', 'cloudfront', 's3', 'rds', 'rds_replica', 'elasticache'],
+    palette: [
+      'ec2',
+      'asg',
+      'alb',
+      'cloudfront',
+      's3',
+      'rds',
+      'rds_replica',
+      'elasticache',
+      'api_gateway',
+      'lambda',
+      'dynamodb',
+      'rds_proxy',
+      'sqs',
+      'sns',
+      'eventbridge',
+    ],
     startingDesign: {
-      nodes: [{ id: 'users', kind: 'users', label: 'Customers', x: 0, y: 220, locked: true }],
+      nodes: [
+        { id: 'users', kind: 'users', label: 'Customers', x: 0, y: 220, locked: true },
+        { id: 'pay', kind: 'payment', label: 'Payment provider', x: 900, y: 420, locked: true },
+      ],
       edges: [],
     },
     weights: { reliability: 1, performance: 1, cost: 1, security: 1, operations: 1, sustainability: 1 },
+    walkthrough: {
+      steps: ['There is no single answer here.', 'Open the guide for ideas, then build and run.'],
+      why: 'The sandbox has no fixed solution. Every service is available so you can test how designs behave under your own traffic, budget and incidents.',
+    },
   });
 }
