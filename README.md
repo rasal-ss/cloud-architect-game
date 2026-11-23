@@ -25,28 +25,39 @@ ways:
 
 | Layer                         | What it demonstrates                                                                                                                                                                                                                                        |
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **The game's content**        | System design knowledge: scaling, high availability, CDNs, right-sizing, data durability, security groups, health checks, alarms and cost trade-offs                                                                                                        |
-| **The game's code**           | A deterministic simulation engine with queueing, autoscaling and failure models; a graph editor; data-driven content validated by schemas; 98 automated tests                                                                                               |
+| **The game's content**        | System design knowledge: scaling, high availability, caching, replication, serverless, queues and events, disaster recovery, security and cost trade-offs                                                                                                   |
+| **The game's code**           | A deterministic simulation engine with queueing, autoscaling and failure models; a graph editor; data-driven content validated by schemas; 181 automated tests                                                                                              |
 | **The game's infrastructure** | Production-ready AWS infrastructure as code: serverless Terraform for dev and prod, GitHub Actions with OIDC (no long-lived keys), least-privilege IAM, alarms, dashboards and a budget alert. Validated in CI, not deployed: the live demo runs on Netlify |
 
 ## Play
 
-The Phase 1 prototype has the first three acts of the campaign (15 levels) and a sandbox.
+The campaign has seven acts (35 levels) that follow NimbusCart from ten users to two million, plus a sandbox.
 
-| Act                   | Story                                   | Levels                                                                                                                                     |
-| --------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **1. Hello Cloud**    | The founder's weekend project, 10 users | One EC2 server · Elastic IP and security groups · Images in S3 · CloudFront with a private bucket · **Boss: launch day on $20**            |
-| **2. First Database** | First paying customers, 1k users        | Database on the server · Move to RDS (before a crash) · Right-sizing · Backups and private databases · **Boss: don't lose a single order** |
-| **3. Growing Pains**  | Featured on the app store, 50k users    | ALB and two servers · Auto Scaling on CPU · Two Availability Zones · Health checks and alarms · **Boss: 10x in 3 minutes**                 |
+| Act                        | Story                                       | Levels                                                                                                                                               |
+| -------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Hello Cloud**         | The founder's weekend project, 10 users     | One EC2 server; Elastic IP and security groups; images in S3; CloudFront with a private bucket; **boss: launch day on $20**                          |
+| **2. First Database**      | First paying customers, 1k users            | Database on the server; move to RDS before a crash; right-sizing; backups and private databases; **boss: don't lose a single order**                 |
+| **3. Growing Pains**       | Featured on the app store, 50k users        | ALB and two servers; Auto Scaling on CPU; two Availability Zones; health checks and alarms; **boss: 10x in 3 minutes**                               |
+| **4. Database Bottleneck** | Reads overwhelm the database, 200k users    | Read replicas; cache-aside with ElastiCache; TTL and stale data; replication lag; **boss: Black Friday with a cold cache**                           |
+| **5. Always On**           | A 99.9% SLA, 500k users                     | Multi-AZ failover; stateless servers and sessions; backups vs Multi-AZ; surviving a lost zone; **boss: a zone goes dark at peak**                    |
+| **6. Go Serverless**       | A mobile API, 1M users                      | API Gateway, Lambda and DynamoDB; Lambda memory and cold starts; partition keys; the RDS Proxy connection storm; **boss: the viral coupon**          |
+| **7. Decouple Everything** | Order processing keeps timing out, 2M users | Queue the payments with SQS; fan-out with SNS; poison messages and dead-letter queues; EventBridge retries; **boss: the payment provider goes down** |
 
-Services in Phase 1: **EC2, Auto Scaling Groups, ALB, CloudFront, S3, RDS, RDS read replicas, ElastiCache**
-(replicas and caching are available in the sandbox and unlock in the campaign in Act 4).
-Chaos events: **traffic spikes** and **instance crashes**.
+**17 services:** EC2, Auto Scaling, ALB, CloudFront, S3, RDS, read replicas, ElastiCache, API Gateway, Lambda,
+DynamoDB, RDS Proxy, SQS, SNS, EventBridge, plus your customers and a third-party payment provider.
 
-**No AWS experience needed.** A built-in service guide explains the basics (requests, load, latency,
-availability, Availability Zones, cost) and gives every component an everyday analogy, how it behaves in the
-game, and when to use it or avoid it. New components get a short introduction the first time a level unlocks
-them, and the first level opens with a three-step "how to play".
+**9 kinds of chaos:** traffic spikes, instance crashes, Availability Zone outages, database failures, payment
+provider outages, cache flushes, viral hot keys, a dropped table, and poison messages.
+
+**No AWS experience needed.**
+
+- **Service guide.** Searchable, available from every screen. Each service has an everyday analogy, a
+  beginner overview, how it behaves in the game, when to use and avoid it, words to know, a worked NimbusCart
+  example, common mistakes, what it pairs with, and its sizes and prices. 24 concept pages cover the ideas behind
+  them, from latency and availability to RPO and RTO, hot partitions and idempotency.
+- **Level intros.** The first time a level unlocks a service, a short card introduces it.
+- **Walkthroughs.** Every level has a step-by-step answer and an explanation of why it works. After two failed
+  runs the game offers it, and the answer can be loaded straight onto the canvas.
 
 ![Report card for the boss level: availability of 99.48% just misses the 99.5% target. The card shows pillar scores, a cost breakdown, the fleet as the bottleneck at 220% load, hints and a post-mortem timeline](docs/screenshots/report.png)
 
@@ -149,6 +160,7 @@ always gives the same result.
    (CloudFront for images, the load balancer for pages). CloudFront answers cache hits at the edge, based on its
    TTL. The ALB splits by healthy capacity. Servers send reads to a cache, replicas or the primary, and writes to
    the primary. A server with no database keeps one on its own disk, which costs CPU, and is lost if it crashes.
+   A request can make several calls in order: charge the card, save the order, publish an event.
 4. **Capacity and queueing.** Every request costs a node some work units. Latency is nearly flat below 80% load,
    then rises sharply (an M/M/c-style knee); above 100%, the excess is dropped.
 5. **Latency as distributions, not averages.** A backward pass combines each node's latency with its children's
@@ -157,15 +169,25 @@ always gives the same result.
 6. **Autoscaling and failure.** Auto Scaling Groups track a target utilisation, with a 3-minute warm-up and a
    scale-in cooldown. Crashes pick a running instance with the seeded RNG. Health checks decide whether the ALB
    keeps routing to a dead target; alarms decide how fast a lone server recovers.
-7. **Cost.** Hourly prices per component (per running instance for ASGs) plus per-request charges, projected to
-   a monthly figure live during the run.
-8. **Scoring.** Objectives (availability, p95, no data loss, budget, configuration checks) decide pass or fail.
-   A 0-100 score weights the six Well-Architected pillars per level and turns into 1-3 stars. The report card adds
-   bottlenecks, hints and a post-mortem timeline.
+7. **Queues and events.** SQS, SNS and EventBridge end the customer's request as soon as a message is accepted.
+   Queues keep a backlog that consumers drain at their own capacity, with retries, poison messages and
+   dead-letter queues. SNS drops messages for a subscriber that can't keep up; EventBridge retries them.
+8. **Serverless and data limits.** Lambda has a concurrency limit and cold starts, and every running execution
+   opens a database connection. Relational databases refuse connections above their limit unless RDS Proxy pools
+   them. DynamoDB throttles a partition key that gets too much traffic.
+9. **Disasters.** Availability Zone outages, Multi-AZ failover, point-in-time restore after a dropped table, lost
+   sessions on servers that disappear, and how stale cached and replicated data can get.
+10. **Cost.** Hourly prices per component (per running instance for ASGs) plus per-request charges, projected to
+    a monthly figure live during the run.
+11. **Scoring.** Objectives (availability, p95, no data loss, budget, configuration checks) decide pass or fail.
+    A 0-100 score weights the six Well-Architected pillars per level and turns into 1-3 stars. The report card adds
+    bottlenecks, hints and a post-mortem timeline.
 
 **Every level is proven solvable in CI.** The engine test suite runs each level's reference solution and requires
 all objectives and 3 stars, across several random seeds. It also checks that each starting design fails, and that
-key lessons hold, for example that a bigger server instead of CloudFront blows the $20 budget in the Act 1 boss.
+key lessons hold: a bigger server instead of CloudFront blows the $20 budget in the Act 1 boss, Lambda without
+RDS Proxy runs the database out of connections, and charging cards inside the customer's request fails during
+the payment outage.
 
 Game balance in numbers: in-game prices and capacities are tuned for gameplay and are approximate, not copied
 from AWS pricing. The game never touches a real AWS account.
@@ -185,7 +207,7 @@ pnpm dev
 Open http://localhost:5173. Other useful commands:
 
 ```bash
-pnpm test        # 98 tests: engine, level solvability, content schemas, API, web
+pnpm test        # 181 tests: engine mechanics, level solvability, content, API, web
 pnpm check       # lint + typecheck + test + build, exactly what CI runs
 ```
 
@@ -222,13 +244,13 @@ repository variables are set. CI still checks every Terraform module with `fmt` 
 
 ## Roadmap
 
-| Phase | Name                     | Scope                                                                                                                                                                                     | Status  |
-| ----- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| 1     | **Prototype**            | Simulation engine, canvas, 8 services, traffic spike and instance crash, report card, Acts 1-3 (15 levels), sandbox                                                                       | ✅ Done |
-| 2     | **Core game**            | Acts 4-7: read replicas and caching, Multi-AZ RDS, serverless (Lambda, API Gateway, DynamoDB, RDS Proxy), SQS/SNS/Step Functions; more incidents (AZ outage, failover, connection storms) | Next    |
-| 3     | **Data Architect mode**  | Second campaign: schema designer, Query Lab with execution plans, transactions, DynamoDB key design board, polyglot persistence                                                           | Planned |
-| 4     | **Cloud backend launch** | Sign-in with Cognito, cloud saves, shared design links, server-verified leaderboards, daily challenges (API and Terraform built and tested, not deployed)                                 | Built   |
-| 5     | **Expansion**            | Acts 8-15 (security, analytics, CI/CD, multi-region, AI, the IPO), **Export to Terraform**, Incident Response and Cost Crusher modes                                                      | Planned |
+| Phase | Name                     | Scope                                                                                                                                                                           | Status  |
+| ----- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1     | **Prototype**            | Simulation engine, canvas, 8 services, traffic spike and instance crash, report card, Acts 1-3 (15 levels), sandbox                                                             | ✅ Done |
+| 2     | **Core game**            | Acts 4-7: replicas and caching, Multi-AZ, serverless (Lambda, API Gateway, DynamoDB, RDS Proxy), SQS, SNS and EventBridge; 7 new incident types; service guide and walkthroughs | ✅ Done |
+| 3     | **Data Architect mode**  | Second campaign: schema designer, Query Lab with execution plans, transactions, DynamoDB key design board, polyglot persistence                                                 | Next    |
+| 4     | **Cloud backend launch** | Sign-in with Cognito, cloud saves, shared design links, server-verified leaderboards, daily challenges (API and Terraform built and tested, not deployed)                       | Built   |
+| 5     | **Expansion**            | Acts 8-15 (security, analytics, CI/CD, multi-region, AI, the IPO), **Export to Terraform**, Incident Response and Cost Crusher modes                                            | Planned |
 
 The full vision is in the [game design document](docs/GAME_DESIGN.md).
 
