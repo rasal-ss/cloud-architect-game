@@ -1,4 +1,4 @@
-import { acts, levels, levelsInAct } from '@cloud-architect/content';
+import { acts, lessons, levels, levelsInAct } from '@cloud-architect/content';
 import { useGame } from '../store/gameStore';
 import { IconBook, Stars } from './icons';
 
@@ -7,6 +7,8 @@ export function LevelSelect() {
   const openLevel = useGame((s) => s.openLevel);
   const openSandbox = useGame((s) => s.openSandbox);
   const openGuide = useGame((s) => s.openGuide);
+  const openCourse = useGame((s) => s.openCourse);
+  const lessonsDone = useGame((s) => s.completedLessons.length);
   const totalStars = Object.values(progress).reduce((s, p) => s + p.stars, 0);
   const next =
     levels.find((l) => !progress[l.id]?.stars) ??
@@ -42,8 +44,10 @@ export function LevelSelect() {
           <button className="btn primary lg" onClick={() => openLevel(next.id)}>
             {started ? 'Continue with' : 'Start with'} {next.title.replace(/^Boss: /, '')}
           </button>
-          <button className="btn ghost lg" onClick={() => openGuide()}>
-            New to AWS? Learn the basics
+          <button className="btn ghost lg" onClick={() => openCourse()}>
+            {lessonsDone
+              ? `Continue the course (${lessonsDone} of ${lessons.length} done)`
+              : 'New to AWS? Start the course'}
           </button>
           <button className="btn ghost lg" onClick={openSandbox}>
             Sandbox

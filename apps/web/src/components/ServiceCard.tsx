@@ -1,4 +1,4 @@
-import { type ServiceKind, levels } from '@cloud-architect/content';
+import { type ServiceKind, lessonFor, levels } from '@cloud-architect/content';
 import { catalogue, money } from '../lib/catalogue';
 import { useGame } from '../store/gameStore';
 import { Glyph } from './Glyph';
@@ -26,6 +26,8 @@ export function unlockLabel(kind: ServiceKind): string {
 export function ServiceCard({ kind, compact = false }: { kind: ServiceKind; compact?: boolean }) {
   const spec = catalogue.get(kind);
   const openGuide = useGame((s) => s.openGuide);
+  const openCourse = useGame((s) => s.openCourse);
+  const lesson = lessonFor(kind);
   const paragraphs = spec.overview.split('\n\n');
   const connects = spec.connectsTo.map((k) => catalogue.get(k).shortName);
 
@@ -40,6 +42,12 @@ export function ServiceCard({ kind, compact = false }: { kind: ServiceKind; comp
       </header>
 
       <p className="analogy">{spec.analogy}</p>
+
+      {!compact && lesson && (
+        <button className="lesson-link" onClick={() => openCourse(lesson.id)}>
+          <b>New to this?</b> Learn it step by step in the lesson “{lesson.title}”.
+        </button>
+      )}
 
       <section>
         <h4>What it is</h4>

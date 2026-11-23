@@ -44,6 +44,7 @@ export function Guide() {
   const topic = useGame((s) => s.guide);
   const open = useGame((s) => s.openGuide);
   const close = useGame((s) => s.closeGuide);
+  const openCourse = useGame((s) => s.openCourse);
   const content = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
 
@@ -158,6 +159,12 @@ export function Guide() {
             <article className="basics">
               <h2>{page.title}</h2>
               <p className="basics-lead">{page.intro}</p>
+              {group === 'basics' && (
+                <button className="lesson-link" onClick={() => openCourse()}>
+                  <b>Brand new to AWS?</b> The course explains all of this step by step, with everyday
+                  examples and short quizzes.
+                </button>
+              )}
               {concepts
                 .filter((c) => c.group === group)
                 .map((c) => (

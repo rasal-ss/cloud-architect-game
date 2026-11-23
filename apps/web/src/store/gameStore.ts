@@ -1,4 +1,11 @@
-import { type Level, type NodeConfig, type ServiceKind, getLevel, levels } from '@cloud-architect/content';
+import {
+  type Level,
+  type NodeConfig,
+  type ServiceKind,
+  getLevel,
+  lessons,
+  levels,
+} from '@cloud-architect/content';
 import { type SimResult, type TickSnapshot, defaultConfig } from '@cloud-architect/engine';
 import {
   type Connection,
@@ -13,6 +20,7 @@ import { catalogue } from '../lib/catalogue';
 import { type ServiceFlowNode, type TrafficFlowEdge, fromFlow, nextId, toFlow } from '../lib/design';
 import { type SandboxSettings, DEFAULT_SANDBOX, SANDBOX_ID, sandboxLevel } from '../lib/sandbox';
 import { type LevelProgress, loadDesign, loadProgress, recordResult, saveDesign } from '../lib/storage';
+import { loadCompleted, saveCompleted } from '../lib/courseProgress';
 import { type LevelIntro, introFor, markSeen } from '../lib/tutorial';
 import { runSimulation } from '../sim/client';
 
@@ -23,7 +31,13 @@ export const MINUTES_PER_SECOND = 24;
 export type SimStatus = 'idle' | 'computing' | 'playing' | 'paused' | 'finished';
 
 interface GameState {
-  screen: 'menu' | 'level';
+  screen: 'menu' | 'level' | 'course';
+  /** The lesson open in the course. */
+  lessonId: string;
+  /** Lessons finished, in this browser. */
+  completedLessons: string[];
+  /** Level to return to after reading a lesson from inside a level. */
+  returnLevelId: string | null;
   level: Level | null;
   sandbox: SandboxSettings;
   nodes: ServiceFlowNode[];
@@ -55,6 +69,9 @@ interface GameState {
   loadSolution: () => void;
   openLevel: (id: string) => void;
   openSandbox: () => void;
+  /** Open the course at a lesson (default: the first unfinished one). */
+  openCourse: (lessonId?: string) => void;
+  completeLesson: (lessonId: string) => void;
   backToMenu: () => void;
   updateSandbox: (s: Partial<SandboxSettings>) => void;
 
@@ -110,6 +127,9 @@ export const useGame = create<GameState>()((set, get) => {
 
   return {
     screen: 'menu',
+    lessonId: lessons[0]!.id,
+    completedLessons: loadCompleted(),
+    returnLevelId: null,
     level: null,
     sandbox: DEFAULT_SANDBOX,
     nodes: [],
@@ -151,6 +171,26 @@ export const useGame = create<GameState>()((set, get) => {
       if (level) load(level);
     },
     openSandbox: () => load(sandboxLevel(get().sandbox)),
+    openCourse: (lessonId) => {
+      const { completedLessons, screen, level } = get();
+      const id = lessonId ?? lessons.find((l) => !completedLessons.includes(l.id))?.id ?? lessons[0]!.id;
+      set({
+        screen: 'course',
+        lessonId: id,
+        returnLevelId: screen === 'level' && level ? level.id : null,
+        level: null,
+        intro: null,
+        guide: null,
+        ...invalidated,
+      });
+    },
+    completeLesson: (lessonId) => {
+      const done = get().completedLessons;
+      if (done.includes(lessonId)) return;
+      const next = [...done, lessonId];
+      saveCompleted(next);
+      set({ completedLessons: next });
+    },
     backToMenu: () => set({ screen: 'menu', level: null, intro: null, guide: null, ...invalidated }),
     updateSandbox: (s) => {
       const sandbox = { ...get().sandbox, ...s };

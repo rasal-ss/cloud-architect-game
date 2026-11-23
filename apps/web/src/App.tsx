@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Course } from './components/Course';
 import { GameScreen } from './components/GameScreen';
 import { Guide } from './components/Guide';
 import { LevelSelect } from './components/LevelSelect';
@@ -13,7 +14,7 @@ export function App() {
   }, [screen, levelId]);
   return (
     <>
-      {screen === 'menu' ? <LevelSelect /> : <GameScreen />}
+      {screen === 'menu' ? <LevelSelect /> : screen === 'course' ? <Course /> : <GameScreen />}
       <Guide />
     </>
   );

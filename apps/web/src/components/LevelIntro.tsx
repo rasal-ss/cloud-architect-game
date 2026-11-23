@@ -1,4 +1,4 @@
-import type { ServiceKind } from '@cloud-architect/content';
+import { type ServiceKind, lessonFor, lessons } from '@cloud-architect/content';
 import { useState } from 'react';
 import { useGame } from '../store/gameStore';
 import { ServiceCard } from './ServiceCard';
@@ -25,6 +25,7 @@ export function LevelIntro() {
   const intro = useGame((s) => s.intro);
   const dismiss = useGame((s) => s.dismissIntro);
   const openGuide = useGame((s) => s.openGuide);
+  const openCourse = useGame((s) => s.openCourse);
   const [index, setIndex] = useState(0);
   if (!intro) return null;
 
@@ -34,6 +35,7 @@ export function LevelIntro() {
   ];
   const page = pages[Math.min(index, pages.length - 1)]!;
   const last = index >= pages.length - 1;
+  const lesson = page.type === 'service' ? lessonFor(page.kind) : lessons[0];
   const finish = () => {
     setIndex(0);
     dismiss();
@@ -78,15 +80,27 @@ export function LevelIntro() {
               ))}
             </span>
           )}
-          <button
-            className="link-btn subtle"
-            onClick={() => {
-              finish();
-              openGuide(page.type === 'service' ? page.kind : 'basics');
-            }}
-          >
-            Open the full guide
-          </button>
+          {lesson ? (
+            <button
+              className="link-btn subtle"
+              onClick={() => {
+                finish();
+                openCourse(lesson.id);
+              }}
+            >
+              Read the lesson first
+            </button>
+          ) : (
+            <button
+              className="link-btn subtle"
+              onClick={() => {
+                finish();
+                openGuide('basics');
+              }}
+            >
+              Open the guide
+            </button>
+          )}
           {index > 0 && (
             <button className="btn ghost" onClick={() => setIndex(index - 1)}>
               Back
