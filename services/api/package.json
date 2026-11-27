@@ -10,8 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.1000.0",
-    "@aws-sdk/lib-dynamodb": "^3.1000.0",
+    "@aws-sdk/client-dynamodb": "^3.1176.0",
+    "@aws-sdk/lib-dynamodb": "^3.1176.0",
     "@cloud-architect/content": "workspace:*",
     "@cloud-architect/engine": "workspace:*",
     "zod": "^3.25.0"
@@ -19,6 +19,6 @@
   "devDependencies": {
     "@types/aws-lambda": "^8.10.150",
     "@types/node": "^22.15.0",
-    "esbuild": "^0.25.5"
+    "esbuild": "^0.28.2"
   }
 }
